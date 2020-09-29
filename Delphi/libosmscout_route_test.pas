@@ -55,6 +55,7 @@ var
   VCtx: Pointer;
   VCount: uint32_t;
   VPoints: ppoint_t;
+  VCalcResult: TRouteCaclResult;
 begin
   LibOsmScoutRouteInitialize;
 
@@ -64,17 +65,30 @@ begin
       RiseError(VCtx, 'new');
     end;
 
-    if not router.calc(VCtx, ROUTE_PROFILE_BIKE, @AStartPoint, @ATargetPoint, VCount, VPoints) then begin
-      RiseError(VCtx, 'calc');
-    end;
+    VCalcResult := router.calc(VCtx, ROUTE_PROFILE_BIKE, @AStartPoint, @ATargetPoint, VCount, VPoints);
 
-    for I := 0 to VCount - 1 do begin
-      PrintPoint(VPoints);
-      Inc(VPoints);
-    end;
+    case VCalcResult of
 
-    if not router.clear(VCtx) then begin
-      RiseError(VCtx, 'clear');
+      CALC_RESULT_OK: begin
+        for I := 0 to VCount - 1 do begin
+          PrintPoint(VPoints);
+          Inc(VPoints);
+        end;
+
+        router.clear(VCtx);
+      end;
+
+      CALC_RESULT_NODATA: begin
+        Writeln('There is no data in database for this location');
+      end;
+
+      CALC_RESULT_ERROR: begin
+        RiseError(VCtx, 'calc');
+      end;
+    else
+      raise Exception.CreateFmt(
+        'Unexpected result value: %d', [Integer(VCalcResult)]
+      );
     end;
   finally
     router.del(VCtx);

@@ -1,0 +1,7 @@
+/Delphi/*.dsk
+/Delphi/__history/**
+/Delphi/dcu/**
+/Delphi/bin/**
+/Delphi/*.~dsk
+/Delphi/*.local
+/Delphi/*.identcache

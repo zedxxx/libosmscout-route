@@ -21,19 +21,27 @@ enum route_profile {
     ROUTE_PROFILE_FOOT
 };
 
+enum route_cacl_result {
+    CALC_RESULT_OK,
+    CALC_RESULT_NODATA,
+    CALC_RESULT_ERROR
+};
+
 typedef struct {
     double lon;
     double lat;
 } point_t;
 
+DLL_EXPORT void router_init();
+
 DLL_EXPORT bool router_new(void** ctx, const char* db_path);
-DLL_EXPORT bool router_del(void* ctx);
+DLL_EXPORT void router_del(void* ctx);
 
-DLL_EXPORT bool router_calc(void* ctx, route_profile profile,
-                            const point_t* p1, const point_t* p2,
-                            uint32_t* out_count, const point_t** out_points);
+DLL_EXPORT route_cacl_result router_calc(void* ctx, route_profile profile,
+                                         const point_t* p1, const point_t* p2,
+                                         uint32_t* out_count, const point_t** out_points);
 
-DLL_EXPORT bool router_clear(void* ctx);
+DLL_EXPORT void router_clear(void* ctx);
 
 DLL_EXPORT const char* router_get_error_message(void* ctx);
 

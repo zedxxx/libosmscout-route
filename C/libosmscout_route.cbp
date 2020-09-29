@@ -30,6 +30,7 @@
 					<Add option="-O2" />
 					<Add option="-Wall" />
 					<Add option="-DBUILD_DLL" />
+					<Add option="-DOSMSCOUT_STATIC" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -45,7 +46,7 @@
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
-			<Add library="libosmscout.dll.a" />
+			<Add library="osmscout" />
 			<Add directory="lib" />
 		</Linker>
 		<Unit filename="src/main.cpp">

@@ -12,10 +12,16 @@ const
 type
   uint32_t = Cardinal;
 
-  route_profile = (
+  TRouteProfile = (
     ROUTE_PROFILE_CAR,
     ROUTE_PROFILE_BIKE,
     ROUTE_PROFILE_FOOT
+  );
+
+  TRouteCaclResult  = (
+    CALC_RESULT_OK,
+    CALC_RESULT_NODATA,
+    CALC_RESULT_ERROR
   );
 
   point_t = packed record
@@ -27,13 +33,15 @@ var
   router: packed record
     Handle: THandle;
 
+    init: procedure(); cdecl;
+
     new: function(out ctx: pointer; const db_path: PAnsiChar): boolean; cdecl;
-    del: function(ctx: pointer): boolean; cdecl;
+    del: procedure(ctx: pointer); cdecl;
 
-    calc: function(ctx: pointer; profile: route_profile; const p1, p2: ppoint_t;
-            out out_count: uint32_t; out out_points: ppoint_t): boolean; cdecl;
+    calc: function(ctx: pointer; profile: TRouteProfile; const p1, p2: ppoint_t;
+            out out_count: uint32_t; out out_points: ppoint_t): TRouteCaclResult; cdecl;
 
-    clear: function(ctx: pointer): boolean; cdecl;
+    clear: procedure(ctx: pointer); cdecl;
     get_error_message: function(ctx: pointer): PAnsiChar; cdecl;
   end;
 
@@ -51,11 +59,12 @@ uses
 
 var
   GLock: TCriticalSection = nil;
+  GInitialized: Boolean = False;
 
 function IsLibOsmScoutRouteAvailable: Boolean;
 begin
   try
-    if router.Handle = 0 then begin
+    if not GInitialized then begin
       LibOsmScoutRouteInitialize;
     end;
     Result := router.Handle > 0;
@@ -66,8 +75,8 @@ end;
 
 procedure LibOsmScoutRouteInitialize(const dllname: string);
 const
-  CFuncNames: array[0..4] of string = (
-    'new', 'del', 'calc', 'clear', 'get_error_message'
+  CFuncNames: array[0..5] of string = (
+    'init', 'new', 'del', 'calc', 'clear', 'get_error_message'
   );
 var
   I: Integer;
@@ -77,8 +86,10 @@ begin
   GLock.Acquire;
   try
     VHandle := 0;
-    if router.Handle = 0 then
+    if not GInitialized then
     try
+      GInitialized := True;
+
       VHandle := SafeLoadLibrary(ExtractFilePath(ParamStr(0)) + dllname);
       if VHandle = 0 then begin
         VHandle := SafeLoadLibrary(dllname);
@@ -87,7 +98,7 @@ begin
         raise ELibOsmScoutRouteError.CreateFmt('Unable to load library %s', [dllname]);
       end;
 
-      P := @@router.new;
+      P := @@router.init;
       for I := Low(CFuncNames) to High(CFuncNames) do begin
         P^ := GetProcAddress(VHandle, PChar('router_' + CFuncNames[I]));
         if P^ = nil then begin
@@ -99,6 +110,8 @@ begin
       end;
 
       router.Handle := VHandle;
+      router.init;
+      
     except
       on E: Exception do begin
         if VHandle <> 0 then begin

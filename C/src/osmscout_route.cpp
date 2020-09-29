@@ -3,19 +3,26 @@
 #include <osmscout/GeoCoord.h>
 #include <osmscout/Database.h>
 #include <osmscout/routing/SimpleRoutingService.h>
+#include <osmscout/util/Logger.h>
 
 struct RouterContext {
     osmscout::DatabaseParameter databaseParameter;
-    osmscout::DatabaseRef database;
+    osmscout::DatabaseRef database = nullptr;
 
     osmscout::RouterParameter routerParameter;
-    osmscout::SimpleRoutingServiceRef router;
+    osmscout::SimpleRoutingServiceRef router = nullptr;
 
-    uint32_t pointsCount;
-    point_t* points;
+    uint32_t pointsCount = 0;
+    point_t* points = nullptr;
 
     std::string err;
 };
+
+DLL_EXPORT void router_init() 
+{
+    auto routerLogger = new osmscout::NoOpLogger();
+    osmscout::log.SetLogger(routerLogger);
+}
 
 DLL_EXPORT bool router_new(void** ctx_ptr, const char* db_path)
 {
@@ -26,10 +33,6 @@ DLL_EXPORT bool router_new(void** ctx_ptr, const char* db_path)
         // memory allocation error
         return false;
     }
-
-    ctx->pointsCount = 0;
-    ctx->points = nullptr;
-    ctx->err.clear();
 
     ctx->database = std::make_shared<osmscout::Database>(ctx->databaseParameter);
 
@@ -45,10 +48,10 @@ DLL_EXPORT bool router_new(void** ctx_ptr, const char* db_path)
     return true;
 };
 
-DLL_EXPORT bool router_del(void* ctx_ptr)
+DLL_EXPORT void router_del(void* ctx_ptr)
 {
     if (!ctx_ptr) {
-        return false;
+        return;
     }
 
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
@@ -57,8 +60,6 @@ DLL_EXPORT bool router_del(void* ctx_ptr)
     ctx->router=nullptr;
     ctx->database=nullptr;
     delete ctx;
-
-    return true;
 };
 
 static void GetCarSpeedTable(std::map<std::string, double>& map)
@@ -84,13 +85,14 @@ static void GetCarSpeedTable(std::map<std::string, double>& map)
     map["highway_service"]=30.0;
 }
 
-DLL_EXPORT bool router_calc(void* ctx_ptr, route_profile profile,
-    const point_t* p1, const point_t* p2,
-    uint32_t *out_count, const point_t **out_points)
+DLL_EXPORT route_cacl_result
+router_calc(void* ctx_ptr, route_profile profile,
+            const point_t* p1, const point_t* p2,
+            uint32_t *out_count, const point_t **out_points)
 {
 
     if (!ctx_ptr) {
-        return false;
+        return CALC_RESULT_ERROR;
     }
 
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
@@ -99,13 +101,13 @@ DLL_EXPORT bool router_calc(void* ctx_ptr, route_profile profile,
     ctx->err.clear();
 
     if (!router) {
-        return false;
+        return CALC_RESULT_ERROR;
     }
     if (!router->IsOpen()) {
         if (!router->Open()) {
             ctx->err = "Cannot open routing database";
             ctx->router=nullptr;
-            return false;
+            return CALC_RESULT_ERROR;
         }
     }
 
@@ -136,7 +138,7 @@ DLL_EXPORT bool router_calc(void* ctx_ptr, route_profile profile,
 
     if (!startResult.IsValid()) {
         ctx->err = "Error while searching for routing node near start location!";
-        return false;
+        return CALC_RESULT_NODATA;
     }
 
     osmscout::RoutePosition start=startResult.GetRoutePosition();
@@ -151,7 +153,7 @@ DLL_EXPORT bool router_calc(void* ctx_ptr, route_profile profile,
 
     if (!targetResult.IsValid()) {
         ctx->err = "Error while searching for routing node near target location!";
-        return false;
+        return CALC_RESULT_NODATA;
     }
 
     osmscout::RoutePosition target=targetResult.GetRoutePosition();
@@ -168,41 +170,41 @@ DLL_EXPORT bool router_calc(void* ctx_ptr, route_profile profile,
     if (!result.Success()) {
         ctx->err = "There was an error while calculating the route!";
         router->Close();
-        return false;
+        return CALC_RESULT_ERROR;
     }
 
     osmscout::RoutePointsResult routePointsResult=router->TransformRouteDataToPoints(result.GetRoute());
 
     if (!routePointsResult.Success()) {
         ctx->err = "Error during route conversion";
-        return false;
+        return CALC_RESULT_ERROR;
     }
 
     std::vector<osmscout::Point> points = routePointsResult.GetPoints()->points;
     ctx->pointsCount = points.size();
 
-    if (ctx->pointsCount > 0) {
-        point_t* p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
-        ctx->points = p;
-        for (const auto& point : points) {
-            p->lon = point.GetLon();
-            p->lat = point.GetLat();
-            ++p;
-        }
+    if (ctx->pointsCount == 0) {
+        return CALC_RESULT_NODATA;
+    }
 
-        *out_count = ctx->pointsCount;
-        *out_points = ctx->points;
-        return true;
+    point_t* p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
+    ctx->points = p;
+    for (const auto& point : points) {
+        p->lon = point.GetLon();
+        p->lat = point.GetLat();
+        ++p;
     }
-    else {
-      return false;
-    }
+
+    *out_count = ctx->pointsCount;
+    *out_points = ctx->points;
+
+    return CALC_RESULT_OK;
 };
 
-DLL_EXPORT bool router_clear(void* ctx_ptr)
+DLL_EXPORT void router_clear(void* ctx_ptr)
 {
     if (!ctx_ptr) {
-        return false;
+        return;
     }
 
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
@@ -218,8 +220,6 @@ DLL_EXPORT bool router_clear(void* ctx_ptr)
     }
 
     ctx->err.clear();
-
-    return true;
 };
 
 DLL_EXPORT const char* router_get_error_message(void* ctx_ptr)
