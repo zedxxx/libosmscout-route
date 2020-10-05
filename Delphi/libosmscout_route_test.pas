@@ -14,6 +14,7 @@ procedure DoTest(
 implementation
 
 uses
+  Math,
   SysUtils;
 
 procedure RiseError(const ACtx: Pointer; const AFuncName: string);
@@ -56,8 +57,17 @@ var
   VCount: uint32_t;
   VPoints: ppoint_t;
   VCalcResult: TRouteCaclResult;
+  {$IF CompilerVersion >= 33}
+  VExceptionMask: TArithmeticExceptionMask;
+  {$ELSE}
+  VExceptionMask: TFPUExceptionMask;
+  {$IFEND}
 begin
   LibOsmScoutRouteInitialize;
+
+  VExceptionMask := Math.SetExceptionMask(
+    [exInvalidOp, exDenormalized, exUnderflow, exPrecision]
+  );
 
   VCtx := nil;
   try
@@ -91,6 +101,7 @@ begin
       );
     end;
   finally
+    Math.SetExceptionMask(VExceptionMask);
     router.del(VCtx);
   end;
 end;
