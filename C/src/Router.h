@@ -1,5 +1,5 @@
-#ifndef OSMSCOUT_ROUTE_H_
-#define OSMSCOUT_ROUTE_H_
+#ifndef HEADER_B0FCA66E3955A488
+#define HEADER_B0FCA66E3955A488
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -49,4 +49,5 @@ DLL_EXPORT const char* router_get_error_message(void* ctx);
 }
 #endif
 
-#endif // OSMSCOUT_ROUTE_H_
+#endif // header guard 
+

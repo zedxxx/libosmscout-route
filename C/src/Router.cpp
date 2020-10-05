@@ -1,43 +1,33 @@
-#include "osmscout_route.h"
 
 #include <osmscout/GeoCoord.h>
 #include <osmscout/Database.h>
+#include <osmscout/routing/RoutingService.h>
 #include <osmscout/routing/SimpleRoutingService.h>
 #include <osmscout/util/Logger.h>
 
-struct RouterContext {
-    osmscout::DatabaseParameter databaseParameter;
-    osmscout::DatabaseRef database = nullptr;
+#include "Router.h"
+#include "RouterContext.h"
 
-    osmscout::RouterParameter routerParameter;
-    osmscout::SimpleRoutingServiceRef router = nullptr;
-
-    uint32_t pointsCount = 0;
-    point_t* points = nullptr;
-
-    std::string err;
-};
-
-DLL_EXPORT void router_init() 
+DLL_EXPORT void router_init()
 {
+    #ifdef ROUTER_DEBUG
+    osmscout::log.Debug(true);
+    #else
     auto routerLogger = new osmscout::NoOpLogger();
     osmscout::log.SetLogger(routerLogger);
+    #endif
 }
 
 DLL_EXPORT bool router_new(void** ctx_ptr, const char* db_path)
 {
-    auto ctx = new(std::nothrow) RouterContext();
+    auto ctx = new RouterContext();
     *ctx_ptr = ctx;
 
-    if (!ctx) {
-        // memory allocation error
-        return false;
-    }
+    auto db = std::string(db_path);
 
     ctx->database = std::make_shared<osmscout::Database>(ctx->databaseParameter);
-
-    if ( !ctx->database->Open(std::string(db_path)) ) {
-        ctx->err = "Cannot open database";
+    if (!ctx->database->Open(db)) {
+        ctx->err = "Cannot open database: " + db;
         return false;
     }
 
@@ -55,10 +45,6 @@ DLL_EXPORT void router_del(void* ctx_ptr)
     }
 
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
-
-    router_clear(ctx_ptr);
-    ctx->router=nullptr;
-    ctx->database=nullptr;
     delete ctx;
 };
 
@@ -88,14 +74,14 @@ static void GetCarSpeedTable(std::map<std::string, double>& map)
 DLL_EXPORT route_cacl_result
 router_calc(void* ctx_ptr, route_profile profile,
             const point_t* p1, const point_t* p2,
-            uint32_t *out_count, const point_t **out_points)
+            uint32_t* out_count, const point_t** out_points)
 {
-
     if (!ctx_ptr) {
         return CALC_RESULT_ERROR;
     }
 
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
+
     auto router = ctx->router;
 
     ctx->err.clear();
@@ -106,15 +92,13 @@ router_calc(void* ctx_ptr, route_profile profile,
     if (!router->IsOpen()) {
         if (!router->Open()) {
             ctx->err = "Cannot open routing database";
-            ctx->router=nullptr;
+            ctx->router = nullptr;
             return CALC_RESULT_ERROR;
         }
     }
 
-    auto typeConfig=ctx->database->GetTypeConfig();
-    auto routingProfile=std::make_shared<osmscout::FastestPathRoutingProfile>(typeConfig);
-
-    std::map<std::string, double> carSpeedTable;
+    auto typeConfig = ctx->database->GetTypeConfig();
+    auto routingProfile{std::make_shared<osmscout::FastestPathRoutingProfile>(typeConfig)};
 
     switch (profile) {
     case ROUTE_PROFILE_FOOT:
@@ -126,46 +110,57 @@ router_calc(void* ctx_ptr, route_profile profile,
         break;
 
     case ROUTE_PROFILE_CAR:
+        std::map<std::string, double> carSpeedTable;
         GetCarSpeedTable(carSpeedTable);
         routingProfile->ParametrizeForCar(*typeConfig, carSpeedTable, 160.0);
         break;
     }
 
-    osmscout::GeoCoord _start(p1->lat, p1->lon);
-    auto startResult=router->GetClosestRoutableNode(_start,
-                                                    *routingProfile,
-                                                    osmscout::Kilometers(1));
+    osmscout::GeoCoord startCoord{p1->lat, p1->lon};
+
+    #ifdef ROUTER_DEBUG
+    osmscout::log.Debug() << startCoord->GetDisplayText();
+    #endif
+
+    auto startResult = router->GetClosestRoutableNode(startCoord,
+                                                      *routingProfile,
+                                                      osmscout::Kilometers(1));
 
     if (!startResult.IsValid()) {
         ctx->err = "Error while searching for routing node near start location!";
         return CALC_RESULT_NODATA;
     }
 
-    osmscout::RoutePosition start=startResult.GetRoutePosition();
-    if (start.GetObjectFileRef().GetType()==osmscout::refNode) {
+    osmscout::RoutePosition start = startResult.GetRoutePosition();
+    if (start.GetObjectFileRef().GetType() == osmscout::refNode) {
         ctx->err = "Cannot find start node for start location!";
     }
 
-    osmscout::GeoCoord _target(p2->lat, p2->lon);
-    auto targetResult=router->GetClosestRoutableNode(_target,
-                                                     *routingProfile,
-                                                     osmscout::Kilometers(1));
+    osmscout::GeoCoord targetCoord{p2->lat, p2->lon};
+
+    #ifdef ROUTER_DEBUG
+    osmscout::log.Debug() << targetCoord->GetDisplayText();
+    #endif
+
+    auto targetResult = router->GetClosestRoutableNode(targetCoord,
+                                                       *routingProfile,
+                                                       osmscout::Kilometers(1));
 
     if (!targetResult.IsValid()) {
         ctx->err = "Error while searching for routing node near target location!";
         return CALC_RESULT_NODATA;
     }
 
-    osmscout::RoutePosition target=targetResult.GetRoutePosition();
-    if (target.GetObjectFileRef().GetType()==osmscout::refNode) {
+    osmscout::RoutePosition target = targetResult.GetRoutePosition();
+    if (target.GetObjectFileRef().GetType() == osmscout::refNode) {
         ctx->err = "Cannot find start node for target location!";
     }
 
     osmscout::RoutingParameter parameter;
-    osmscout::RoutingResult result=router->CalculateRoute(*routingProfile,
-                                                          start,
-                                                          target,
-                                                          parameter);
+    osmscout::RoutingResult result = router->CalculateRoute(*routingProfile,
+                                                            start,
+                                                            target,
+                                                            parameter);
 
     if (!result.Success()) {
         ctx->err = "There was an error while calculating the route!";
@@ -173,14 +168,14 @@ router_calc(void* ctx_ptr, route_profile profile,
         return CALC_RESULT_ERROR;
     }
 
-    osmscout::RoutePointsResult routePointsResult=router->TransformRouteDataToPoints(result.GetRoute());
+    auto routePointsResult = router->TransformRouteDataToPoints(result.GetRoute());
 
     if (!routePointsResult.Success()) {
         ctx->err = "Error during route conversion";
         return CALC_RESULT_ERROR;
     }
 
-    std::vector<osmscout::Point> points = routePointsResult.GetPoints()->points;
+    auto points = routePointsResult.GetPoints()->points;
     ctx->pointsCount = points.size();
 
     if (ctx->pointsCount == 0) {
@@ -208,18 +203,7 @@ DLL_EXPORT void router_clear(void* ctx_ptr)
     }
 
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
-
-    if (ctx->points) {
-        free(ctx->points);
-        ctx->points = nullptr;
-    }
-    ctx->pointsCount = 0;
-
-    if (ctx->router && ctx->router->IsOpen()) {
-        ctx->router->Close();
-    }
-
-    ctx->err.clear();
+    ctx->Clear();
 };
 
 DLL_EXPORT const char* router_get_error_message(void* ctx_ptr)

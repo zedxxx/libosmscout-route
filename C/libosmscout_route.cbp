@@ -16,8 +16,13 @@
 				<Compiler>
 					<Add option="-Wall" />
 					<Add option="-g" />
-					<Add option="-DBUILD_DLL" />
+					<Add option="-DROUTER_DEBUG" />
 				</Compiler>
+				<Linker>
+					<Add option="-static-libstdc++" />
+					<Add option="-static-libgcc" />
+					<Add option="-static" />
+				</Linker>
 			</Target>
 			<Target title="Release">
 				<Option output="bin/Release/libosmscout_route" prefix_auto="1" extension_auto="1" />
@@ -27,10 +32,8 @@
 				<Option createDefFile="1" />
 				<Option createStaticLib="1" />
 				<Compiler>
-					<Add option="-O2" />
+					<Add option="-O3" />
 					<Add option="-Wall" />
-					<Add option="-DBUILD_DLL" />
-					<Add option="-DOSMSCOUT_STATIC" />
 				</Compiler>
 				<Linker>
 					<Add option="-s" />
@@ -43,17 +46,20 @@
 		<Compiler>
 			<Add option="-std=c++17" />
 			<Add option="-U__STRICT_ANSI__" />
+			<Add option="-DBUILD_DLL" />
+			<Add option="-DOSMSCOUT_STATIC" />
 			<Add directory="include" />
 		</Compiler>
 		<Linker>
 			<Add library="osmscout" />
 			<Add directory="lib" />
 		</Linker>
+		<Unit filename="src/Router.cpp" />
+		<Unit filename="src/Router.h" />
+		<Unit filename="src/RouterContext.h" />
 		<Unit filename="src/main.cpp">
 			<Option compilerVar="CC" />
 		</Unit>
-		<Unit filename="src/osmscout_route.cpp" />
-		<Unit filename="src/osmscout_route.h" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
