@@ -56,7 +56,7 @@ var
   VCtx: Pointer;
   VCount: uint32_t;
   VPoints: ppoint_t;
-  VCalcResult: TRouteCaclResult;
+  VCalcResult: TRouteCalcResult;
   {$IF CompilerVersion >= 33}
   VExceptionMask: TArithmeticExceptionMask;
   {$ELSE}

@@ -5,3 +5,8 @@
 /Delphi/*.~dsk
 /Delphi/*.local
 /Delphi/*.identcache
+/C/.idea/**
+/C/build/**
+/C/bin/**
+/C/obj/**
+/C/lib/**

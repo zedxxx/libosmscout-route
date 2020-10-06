@@ -71,7 +71,7 @@ static void GetCarSpeedTable(std::map<std::string, double>& map)
     map["highway_service"]=30.0;
 }
 
-DLL_EXPORT route_cacl_result
+DLL_EXPORT route_calc_result
 router_calc(void* ctx_ptr, route_profile profile,
             const point_t* p1, const point_t* p2,
             uint32_t* out_count, const point_t** out_points)
@@ -98,21 +98,21 @@ router_calc(void* ctx_ptr, route_profile profile,
     }
 
     auto typeConfig = ctx->database->GetTypeConfig();
-    auto routingProfile{std::make_shared<osmscout::FastestPathRoutingProfile>(typeConfig)};
+    osmscout::FastestPathRoutingProfile routingProfile{typeConfig};
 
     switch (profile) {
     case ROUTE_PROFILE_FOOT:
-        routingProfile->ParametrizeForFoot(*typeConfig, 5.0);
+        routingProfile.ParametrizeForFoot(*typeConfig, 5.0);
         break;
 
     case ROUTE_PROFILE_BIKE:
-        routingProfile->ParametrizeForBicycle(*typeConfig, 20.0);
+        routingProfile.ParametrizeForBicycle(*typeConfig, 20.0);
         break;
 
     case ROUTE_PROFILE_CAR:
         std::map<std::string, double> carSpeedTable;
         GetCarSpeedTable(carSpeedTable);
-        routingProfile->ParametrizeForCar(*typeConfig, carSpeedTable, 160.0);
+        routingProfile.ParametrizeForCar(*typeConfig, carSpeedTable, 160.0);
         break;
     }
 
@@ -123,7 +123,7 @@ router_calc(void* ctx_ptr, route_profile profile,
     #endif
 
     auto startResult = router->GetClosestRoutableNode(startCoord,
-                                                      *routingProfile,
+                                                      routingProfile,
                                                       osmscout::Kilometers(1));
 
     if (!startResult.IsValid()) {
@@ -143,7 +143,7 @@ router_calc(void* ctx_ptr, route_profile profile,
     #endif
 
     auto targetResult = router->GetClosestRoutableNode(targetCoord,
-                                                       *routingProfile,
+                                                       routingProfile,
                                                        osmscout::Kilometers(1));
 
     if (!targetResult.IsValid()) {
@@ -157,7 +157,7 @@ router_calc(void* ctx_ptr, route_profile profile,
     }
 
     osmscout::RoutingParameter parameter;
-    osmscout::RoutingResult result = router->CalculateRoute(*routingProfile,
+    osmscout::RoutingResult result = router->CalculateRoute(routingProfile,
                                                             start,
                                                             target,
                                                             parameter);
@@ -182,7 +182,7 @@ router_calc(void* ctx_ptr, route_profile profile,
         return CALC_RESULT_NODATA;
     }
 
-    point_t* p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
+    auto p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
     ctx->points = p;
     for (const auto& point : points) {
         p->lon = point.GetLon();
