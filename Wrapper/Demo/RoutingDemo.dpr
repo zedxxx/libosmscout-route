@@ -1,11 +1,11 @@
-program routing_test;
+program RoutingDemo;
 
 {$APPTYPE CONSOLE}
 
 uses
   SysUtils,
-  libosmscout_route in 'libosmscout_route.pas',
-  libosmscout_route_test in 'libosmscout_route_test.pas';
+  u_RoutingDemo in 'u_RoutingDemo.pas',
+  libosmscout_route in '..\libosmscout_route.pas';
 
 function ReadCoordinate(const AStr: string): Double;
 var
@@ -38,13 +38,10 @@ begin
     VTargetPoint.lat := ReadCoordinate(ParamStr(4));
     VTargetPoint.lon := ReadCoordinate(ParamStr(5));
 
-    DoTest(VDatabasePath, VStartPoint, VTargetPoint);
+    PrintRoute(VDatabasePath, VStartPoint, VTargetPoint);
   except
     on E: Exception do begin
       Writeln(E.ClassName, ': ', E.Message);
     end;
   end;
-
-  Writeln('Press Enter to exit...');
-  Readln;
 end.

@@ -1,11 +1,11 @@
-unit libosmscout_route_test;
+unit u_RoutingDemo;
 
 interface
 
 uses
   libosmscout_route;
 
-procedure DoTest(
+procedure PrintRoute(
   const ADatabasePath: AnsiString;
   const AStartPoint: point_t;
   const ATargetPoint: point_t
@@ -16,23 +16,6 @@ implementation
 uses
   Math,
   SysUtils;
-
-procedure RiseError(const ACtx: Pointer; const AFuncName: string);
-var
-  VErr: PAnsiChar;
-  VErrStr: string;
-begin
-  VErrStr := 'Unknown error';
-  if ACtx <> nil then begin
-    VErr := router.get_error_message(ACtx);
-    if VErr <> '' then begin
-      VErrStr := string(AnsiString(VErr));
-    end;
-  end;
-  raise ELibOsmScoutRouteError.Create(
-    '"router_' + AFuncName + '" failed with error: ' + VErrStr
-  );
-end;
 
 procedure PrintPoint(const APoint: ppoint_t); inline;
 var
@@ -46,7 +29,7 @@ begin
   );
 end;
 
-procedure DoTest(
+procedure PrintRoute(
   const ADatabasePath: AnsiString;
   const AStartPoint: point_t;
   const ATargetPoint: point_t
@@ -72,10 +55,11 @@ begin
   VCtx := nil;
   try
     if not router.new(VCtx, PAnsiChar(ADatabasePath)) then begin
-      RiseError(VCtx, 'new');
+      RiseLibOsmScoutError(VCtx, 'new');
     end;
 
-    VCalcResult := router.calc(VCtx, ROUTE_PROFILE_BIKE, @AStartPoint, @ATargetPoint, VCount, VPoints);
+    VCalcResult := router.calc(VCtx, ROUTE_PROFILE_BIKE, @AStartPoint,
+      @ATargetPoint, VCount, VPoints);
 
     case VCalcResult of
 
@@ -93,7 +77,7 @@ begin
       end;
 
       CALC_RESULT_ERROR: begin
-        RiseError(VCtx, 'calc');
+        RiseLibOsmScoutError(VCtx, 'calc');
       end;
     else
       raise Exception.CreateFmt(

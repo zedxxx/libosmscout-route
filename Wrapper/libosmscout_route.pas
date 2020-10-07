@@ -51,6 +51,8 @@ type
 procedure LibOsmScoutRouteInitialize(const dllname: string = libosmscout_route_dll);
 function IsLibOsmScoutRouteAvailable: Boolean;
 
+procedure RiseLibOsmScoutError(const ACtx: Pointer; const AFuncName: string);
+
 implementation
 
 uses
@@ -124,6 +126,23 @@ begin
   finally
     GLock.Release;
   end;
+end;
+
+procedure RiseLibOsmScoutError(const ACtx: Pointer; const AFuncName: string);
+var
+  VErr: PAnsiChar;
+  VErrStr: string;
+begin
+  VErrStr := 'Unknown error';
+  if ACtx <> nil then begin
+    VErr := router.get_error_message(ACtx);
+    if VErr <> '' then begin
+      VErrStr := string(AnsiString(VErr));
+    end;
+  end;
+  raise ELibOsmScoutRouteError.Create(
+    '"router_' + AFuncName + '" failed with error: ' + VErrStr
+  );
 end;
 
 initialization
