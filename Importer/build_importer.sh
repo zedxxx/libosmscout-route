@@ -2,24 +2,29 @@
 
 set -e
 
-lib=libosmscout
+build=.build
+src=.libosmscout
 
-if [ -d "$lib"/ ] ; then
-    cd $lib    
+cd ./../
+
+if [ -d "$src"/ ] ; then
+    cd $src    
     git fetch --all --verbose
     git clean -d -x --force
     git reset --hard origin/master    
     cd ./../
 else
-    git clone https://github.com/Framstag/libosmscout $lib
+    git clone https://github.com/Framstag/libosmscout $src
 fi
 
-rm -rf build/
+if [ -d "$build"/ ]; then
+    rm -rf "$build"/
+fi
 
-mkdir build
-cd build
+mkdir $build
+cd $build
 
-cmake ./../$lib/ -G 'MSYS Makefiles' \
+cmake ./../"$src"/ -G 'MSYS Makefiles' \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DOSMSCOUT_BUILD_MAP=OFF \
@@ -49,7 +54,7 @@ cmake ./../$lib/ -G 'MSYS Makefiles' \
     
 make -j2
 
-cd ./../
+cd ./../Importer/
 
 root=libosmscout-importer-win64
 target=$root/bin
@@ -59,9 +64,9 @@ rm -rf $root
 mkdir $root
 mkdir $target
 
-cp build/libosmscout/libosmscout.dll $target
-cp build/libosmscout-import/libosmscout_import.dll $target
-cp build/Import/Import.exe $target
+cp ./../$build/libosmscout/libosmscout.dll $target
+cp ./../$build/libosmscout-import/libosmscout_import.dll $target
+cp ./../$build/Import/Import.exe $target
 
 dlls=(libwinpthread-1.dll libgcc_s_seh-1.dll libstdc++-6.dll libiconv-2.dll libprotobuf.dll zlib1.dll libgomp-1.dll liblzma-5.dll libxml2-2.dll)
 
@@ -72,9 +77,9 @@ done
 target=$root/stylesheets
 mkdir $target
 
-cp libosmscout/stylesheets/map.ost $target
-cp libosmscout/packaging/import/windows/README.txt $root/Readme.txt
-cp libosmscout/packaging/import/windows/import.cmd $root/Import.cmd
+cp ./../$src/stylesheets/map.ost $target
+cp ./../$src/packaging/import/windows/README.txt $root/Readme.txt
+cp ./../$src/packaging/import/windows/import.cmd $root/Import.cmd
 
 cp ImportRoute.cmd $root
 cp stylesheets/route.ost $target

@@ -9,9 +9,11 @@ Wrapper/**/*.identcache
 /Library/bin/**
 /Library/obj/**
 /Library/lib/**
+/Library/include/**/meson.build
+/Library/include/**/CoreFeatures.h.cmake
 
-/Importer/libosmscout/**
 /Importer/libosmscout-importer-win64.zip
 
 **/.idea/**
 **/build/**
+.libosmscout
