@@ -10,3 +10,6 @@
 /C/bin/**
 /C/obj/**
 /C/lib/**
+/Importer/build/**
+/Importer/libosmscout/**
+/Importer/libosmscout-importer-win64.zip
