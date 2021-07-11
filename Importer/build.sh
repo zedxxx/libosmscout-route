@@ -1,30 +1,19 @@
-#!/bin/env bash
+#!/bin/bash -ex
 
-set -e
-
-build=.build
 src=.libosmscout
 
 cd ./../
 
-if [ -d "$src"/ ] ; then
-    cd $src    
-    git fetch --all --verbose
-    git clean -d -x --force
-    git reset --hard origin/master    
-    cd ./../
-else
-    git clone https://github.com/Framstag/libosmscout $src
+if [ ! -d "${src}/" ] ; then
+    git clone https://github.com/framstag/libosmscout "${src}"
 fi
 
-if [ -d "$build"/ ]; then
-    rm -rf "$build"/
-fi
+cd "${src}/"
+git fetch --all --verbose
+git clean -d -x --force
+git reset --hard origin/master    
 
-mkdir $build
-cd $build
-
-cmake ./../"$src"/ -G 'MSYS Makefiles' \
+cmake . -G 'MSYS Makefiles' \
     -DBUILD_SHARED_LIBS=ON \
     -DCMAKE_BUILD_TYPE=Release \
     -DOSMSCOUT_BUILD_MAP=OFF \
@@ -32,6 +21,7 @@ cmake ./../"$src"/ -G 'MSYS Makefiles' \
     -DOSMSCOUT_BUILD_MAP_CAIRO=OFF \
     -DOSMSCOUT_BUILD_MAP_OPENGL=OFF \
     -DOSMSCOUT_BUILD_MAP_DIRECTX=OFF \
+    -DOSMSCOUT_BUILD_MAP_GDI=OFF \
     -DOSMSCOUT_BUILD_MAP_QT=OFF \
     -DOSMSCOUT_BUILD_MAP_SVG=OFF \
     -DOSMSCOUT_BUILD_MAP_IOSX=OFF \
@@ -64,9 +54,9 @@ rm -rf $root
 mkdir $root
 mkdir $target
 
-cp ./../$build/libosmscout/libosmscout.dll $target
-cp ./../$build/libosmscout-import/libosmscout_import.dll $target
-cp ./../$build/Import/Import.exe $target
+cp ./../${src}/libosmscout/libosmscout.dll $target
+cp ./../${src}/libosmscout-import/libosmscout_import.dll $target
+cp ./../${src}/Import/Import.exe $target
 
 dlls=(libwinpthread-1.dll libgcc_s_seh-1.dll libstdc++-6.dll libiconv-2.dll libprotobuf.dll zlib1.dll libgomp-1.dll liblzma-5.dll libxml2-2.dll)
 
