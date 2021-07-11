@@ -54,7 +54,10 @@
 // Water index
 #include <osmscout/WaterIndex.h>
 
-#include <osmscout/routing/Route.h>
+// SRTM index
+#include <osmscout/SRTM.h>
+
+#include <osmscout/routing/RouteDescription.h>
 
 #include <osmscout/util/GeoBox.h>
 
@@ -93,6 +96,10 @@ namespace osmscout {
     bool routesDataMMap=true;
     bool optimizeLowZoomMMap=true;
     bool indexMMap=true;
+
+    // temporary, until we have our own database file
+    std::string srtmDirectory;
+
   public:
     DatabaseParameter() = default;
 
@@ -110,6 +117,12 @@ namespace osmscout {
     void SetOptimizeLowZoomMMap(bool mmap);
     void SetIndexMMap(bool mmap);
 
+    // Temporary
+    void SetSRTMDirectory(const std::string& directory)
+    {
+      this->srtmDirectory=directory;
+    }
+
     unsigned long GetAreaAreaIndexCacheSize() const;
     unsigned long GetNodeDataCacheSize() const;
     unsigned long GetWayDataCacheSize() const;
@@ -123,6 +136,12 @@ namespace osmscout {
     bool GetRoutesDataMMap() const;
     bool GetOptimizeLowZoomMMap() const;
     bool GetIndexMMap() const;
+
+    // Temporary
+    std::string GetSRTMDirectory() const
+    {
+      return srtmDirectory;
+    }
   };
 
   class Database;
@@ -140,12 +159,12 @@ namespace osmscout {
   public:
     friend Database;
 
-    inline NodeRef GetNode() const
+    NodeRef GetNode() const
     {
       return node;
     }
 
-    inline Distance GetDistance() const
+    Distance GetDistance() const
     {
       return distance;
     }
@@ -159,7 +178,7 @@ namespace osmscout {
   public:
     friend Database;
 
-    inline std::list<NodeRegionSearchResultEntry> GetNodeResults() const
+    std::list<NodeRegionSearchResultEntry> GetNodeResults() const
     {
       return nodeResults;
     }
@@ -181,17 +200,17 @@ namespace osmscout {
   public:
     friend Database;
 
-    inline WayRef GetWay() const
+    WayRef GetWay() const
     {
       return way;
     }
 
-    inline Distance GetDistance() const
+    Distance GetDistance() const
     {
       return distance;
     }
 
-    inline GeoCoord GetClosestPoint() const
+    GeoCoord GetClosestPoint() const
     {
       return closestPoint;
     }
@@ -205,7 +224,7 @@ namespace osmscout {
   public:
     friend Database;
 
-    inline std::list<WayRegionSearchResultEntry> GetWayResults() const
+    std::list<WayRegionSearchResultEntry> GetWayResults() const
     {
       return wayResults;
     }
@@ -228,22 +247,22 @@ namespace osmscout {
   public:
     friend Database;
 
-    inline AreaRef GetArea() const
+    AreaRef GetArea() const
     {
       return area;
     }
 
-    inline Distance GetDistance() const
+    Distance GetDistance() const
     {
       return distance;
     }
 
-    inline GeoCoord GetClosestPoint() const
+    GeoCoord GetClosestPoint() const
     {
       return closestPoint;
     }
 
-    inline bool IsInArea() const
+    bool IsInArea() const
     {
       return inArea;
     }
@@ -280,7 +299,7 @@ namespace osmscout {
     DatabaseParameter               parameter;                //!< Parameterization of this database object
 
     std::string                     path;                     //!< Path to the directory containing all files
-    bool                            isOpen;                   //!< true, if opened
+    bool                            isOpen=false;             //!< true, if opened
 
     TypeConfigRef                   typeConfig;               //!< Type config for the currently opened map
 
@@ -323,6 +342,9 @@ namespace osmscout {
     mutable OptimizeWaysLowZoomRef  optimizeWaysLowZoom;      //!< Optimized data for low zoom situations
     mutable std::mutex              optimizeWaysMutex;        //!< Mutex to make lazy initialisation of optimized ways index thread-safe
 
+    mutable SRTMRef                 srtmIndex;
+    mutable std::mutex              srtmIndexMutex;           //!< Mutex to make lazy initialisation of optimized ways index thread-safe
+
   private:
     template<typename DataFile, typename OffsetsCol, typename DataCol>
     bool GetObjectsByOffset(DataFile dataFile,
@@ -347,7 +369,7 @@ namespace osmscout {
 
   public:
     explicit Database(const DatabaseParameter& parameter);
-    virtual ~Database();
+    ~Database();
 
     bool Open(const std::string& path);
     bool IsOpen() const;
@@ -356,7 +378,7 @@ namespace osmscout {
     std::string GetPath() const;
     TypeConfigRef GetTypeConfig() const;
 
-    inline const DatabaseParameter& GetParameter() const
+    const DatabaseParameter& GetParameter() const
     {
       return parameter;
     }
@@ -379,6 +401,8 @@ namespace osmscout {
 
     OptimizeAreasLowZoomRef GetOptimizeAreasLowZoom() const;
     OptimizeWaysLowZoomRef GetOptimizeWaysLowZoom() const;
+
+    SRTMRef GetSRTMIndex() const;
 
     bool GetBoundingBox(GeoBox& boundingBox) const;
 
@@ -446,7 +470,7 @@ namespace osmscout {
      */
     NodeRegionSearchResult LoadNodesInRadius(const GeoCoord& location,
                                              const TypeInfoSet& types,
-                                             Distance maxDistance=Distance::Of<Meter>(100));
+                                             Distance maxDistance=Distance::Of<Meter>(100)) const;
 
     /**
      * Load ways of given types with maximum distance to the given coordinate.
@@ -462,7 +486,7 @@ namespace osmscout {
      */
     WayRegionSearchResult LoadWaysInRadius(const GeoCoord& location,
                                            const TypeInfoSet& types,
-                                           Distance maxDistance=Distance::Of<Meter>(100));
+                                           Distance maxDistance=Distance::Of<Meter>(100)) const;
 
     /**
      * Load areas of given types with maximum distance to the given coordinate.
@@ -478,7 +502,7 @@ namespace osmscout {
      */
     AreaRegionSearchResult LoadAreasInRadius(const GeoCoord& location,
                                              const TypeInfoSet& types,
-                                             Distance maxDistance=Distance::Of<Meter>(100));
+                                             Distance maxDistance=Distance::Of<Meter>(100)) const;
 
     /**
      * Load nodes of given types in the given geo box
@@ -492,7 +516,7 @@ namespace osmscout {
      * @throws OSMScoutException in case of errors
      */
     NodeRegionSearchResult LoadNodesInArea(const TypeInfoSet& types,
-                                           const GeoBox& boundingBox);
+                                           const GeoBox& boundingBox) const;
 
     /**
      * Load ways of given types in the given geo box.
@@ -506,7 +530,7 @@ namespace osmscout {
      * @throws OSMScoutException in case of errors
      */
     WayRegionSearchResult LoadWaysInArea(const TypeInfoSet& types,
-                                         const GeoBox& boundingBox);
+                                         const GeoBox& boundingBox) const;
 
     /**
      * Load areas of given types in the given geo box.
@@ -520,9 +544,9 @@ namespace osmscout {
      * @throws OSMScoutException in case of errors
      */
     AreaRegionSearchResult LoadAreasInArea(const TypeInfoSet& types,
-                                           const GeoBox& boundingBox);
+                                           const GeoBox& boundingBox) const;
 
-    void DumpStatistics();
+    void DumpStatistics() const;
 
     void FlushCache();
   };

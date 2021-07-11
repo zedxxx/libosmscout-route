@@ -28,44 +28,71 @@
  Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
  */
 
+#include <memory>
 #include <string>
-#include <fstream>
+#include <vector>
+
+#include <osmscout/GeoCoord.h>
+#include <osmscout/util/GeoBox.h>
 
 #include <osmscout/OSMScoutTypes.h>
 
-#define SRTM1_GRID 3601
-#define SRTM3_GRID 1201
-#define SRTM1_FILESIZE (SRTM1_GRID*SRTM1_GRID*2)
-#define SRTM3_FILESIZE (SRTM3_GRID*SRTM3_GRID*2)
+#include <osmscout/system/SystemTypes.h>
 
 namespace osmscout {
 
-    /**
-     * Read elevation data in hgt format
-     */
-    class OSMSCOUT_API SRTM
+  class OSMSCOUT_API SRTMData
+  {
+  public:
+    GeoBox               boundingBox;
+    size_t               rows;
+    size_t               columns;
+    std::vector<int32_t> heights;
+
+    inline int32_t GetHeight(size_t x, size_t y) const
     {
-    public:
-        static size_t rows;
-        static size_t columns;
-        static size_t patchSize;
+      return heights[y*columns+x];
+    }
+  };
 
-        static const int nodata = -32768;
+  using SRTMDataRef = std::shared_ptr<SRTMData>;
 
-    private:
-        std::string     srtmPath;
-        std::string     currentFilename;
-        std::ifstream   currentFile;
-        int             currentPatchLat;
-        int             currentPatchLon;
-        unsigned char   *heights;
+  /**
+   * Read elevation data in hgt format
+   */
+  class OSMSCOUT_API SRTM
+  {
+  public:
+    static const int32_t nodata=-32768;
 
-    public:
-        explicit SRTM(const std::string &path);
-        virtual ~SRTM();
-        const std::string& srtmFilename(int patchLat, int patchLon);
-        int heightAtLocation(double latitude, double longitude);
-    };
+  private:
+    std::string      srtmPath;
+    std::string      currentFilename;
+    osmscout::GeoBox fileBoundingBox;
+    size_t           rows;
+    size_t           columns;
+    size_t           patchSize;
+    uint8_t          *heights;
+
+  private:
+    bool AssureCorrectFileLoaded(double latitude,
+                                 double longitude);
+
+    std::string CalculateHGTFilename(int patchLat,
+                                     int patchLon) const;
+
+    int32_t GetHeight(size_t column, size_t row) const;
+
+  public:
+    explicit SRTM(const std::string& path);
+
+    virtual ~SRTM();
+
+    int32_t GetHeightAtLocation(const GeoCoord& coord);
+    SRTMDataRef GetHeightInBoundingBox(const GeoBox& boundingBox);
+  };
+
+  using SRTMRef = std::shared_ptr<SRTM>;
 }
 
 #endif

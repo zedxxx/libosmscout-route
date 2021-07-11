@@ -29,6 +29,7 @@
 #include <osmscout/Location.h>
 #include <osmscout/TypeConfig.h>
 
+#include <osmscout/util/ObjectPool.h>
 #include <osmscout/util/FileScanner.h>
 
 namespace osmscout {
@@ -48,11 +49,72 @@ namespace osmscout {
   public:
     static const char* const FILENAME_LOCATION_IDX;
 
+    /**
+     * Util class that cleanup location index cache when instance is destructed.
+     */
+    class OSMSCOUT_API ScopeCacheCleaner CLASS_FINAL {
+      std::shared_ptr<LocationIndex> index;
+    public:
+      explicit ScopeCacheCleaner(std::shared_ptr<LocationIndex> index):
+        index(std::move(index))
+      {}
+
+      ScopeCacheCleaner(const ScopeCacheCleaner&) = delete;
+      ScopeCacheCleaner(ScopeCacheCleaner&&) = delete;
+      ScopeCacheCleaner& operator=(const ScopeCacheCleaner &) = delete;
+      ScopeCacheCleaner& operator=(ScopeCacheCleaner &&) = delete;
+
+      ~ScopeCacheCleaner() {
+        if (index) {
+          index->FlushCache();
+        }
+      }
+    };
+
   private:
-    std::string                     path;
-    mutable uint8_t                 bytesForNodeFileOffset;
-    mutable uint8_t                 bytesForAreaFileOffset;
-    mutable uint8_t                 bytesForWayFileOffset;
+
+    /**
+     * FileScanner opening may be expensive operation,
+     * but LocationIndex may be recursive, because some Visit* method
+     * may be called even from visitor. So it is not possible
+     * use "global" scanner, because its position would be different
+     * when returning from visitor. So, scanners are managed in
+     * the ObjectPool that allows reusing the objects, and guarantee
+     * exclusive access.
+     *
+     * To keep small LocationIndex memory footprint, user may call
+     * FlushCache method when index is not needed anymore.
+     */
+    class FileScannerPool: public ObjectPool<FileScanner>
+    {
+    public:
+      std::string path;
+      bool memoryMappedData=false;
+    public:
+      FileScannerPool():
+          ObjectPool<FileScanner>(4) // 4 should be enough for recursive visitors
+      {}
+
+      ~FileScannerPool() override {
+        Clear(); // we have Close method override...
+      }
+
+      Ptr Borrow() override;
+
+      FileScanner* MakeNew() noexcept override;
+
+      void Destroy(FileScanner*) noexcept override;
+
+      bool IsValid(FileScanner* o) noexcept override;
+    };
+
+    using FileScannerPtr = FileScannerPool::Ptr;
+
+  private:
+    mutable FileScannerPool         fileScannerPool;
+    uint8_t                         bytesForNodeFileOffset;
+    uint8_t                         bytesForAreaFileOffset;
+    uint8_t                         bytesForWayFileOffset;
     std::vector<std::string>        regionIgnoreTokens;
     std::unordered_set<std::string> regionIgnoreTokenSet;
     std::vector<std::string>        poiIgnoreTokens;
@@ -202,7 +264,9 @@ namespace osmscout {
     bool ResolveAdminRegionHierachie(const AdminRegionRef& region,
                                      std::map<FileOffset,AdminRegionRef>& refs) const;
 
-    void DumpStatistics();
+    void DumpStatistics() const;
+
+    void FlushCache() const;
   };
 
   using LocationIndexRef = std::shared_ptr<LocationIndex>;

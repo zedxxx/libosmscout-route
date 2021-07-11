@@ -30,6 +30,7 @@
 
 #include <osmscout/system/Assert.h>
 #include <osmscout/util/Time.h>
+#include <osmscout/util/Locale.h>
 
 #include <osmscout/CoreImportExport.h>
 #include <osmscout/OSMScoutTypes.h>
@@ -56,7 +57,7 @@ namespace osmscout {
   extern OSMSCOUT_API bool StringToBool(const char* string, bool& value);
 
   /**
-   * Rteurns a string representation of the given boolean value (either 'true' or 'false')
+   * Returns a string representation of the given boolean value (either 'true' or 'false')
    *
    * @param value
    *    value to return
@@ -64,6 +65,15 @@ namespace osmscout {
    *    result of the conversion
    */
   extern OSMSCOUT_API const char* BoolToString(bool value);
+
+  /**
+   * Returns locale-aware string representation of number
+   *
+   * @param value
+   * @param locale
+   * @return
+   */
+  extern OSMSCOUT_API std::string NumberToString(long value, const Locale &locale);
 
   /**
    * \ingroup Util
@@ -457,27 +467,25 @@ namespace osmscout {
 
   /**
    * Convert the given std::string containing a UTF8 character sequence to upper case using
-   * the current global locale.
+   * translation table implementation.
    *
    * @param text
    *    Text to get converted
    * @return
    *    Converted text
    *
-   * @note that a global C++ locale must be set for more than simple ASCII conversions to work.
    */
   extern OSMSCOUT_API std::string UTF8StringToUpper(const std::string& text);
 
   /**
    * Convert the given std::string containing a UTF8 character sequence to lower case using
-   * the current global locale.
+   * the translation table implementation.
    *
    * @param text
    *    Text to get converted
    * @return
    *    Converted text
    *
-   * @note that a global C++ locale must be set for more than simple ASCII conversions to work.
    */
   extern OSMSCOUT_API std::string UTF8StringToLower(const std::string& text);
 
@@ -487,26 +495,26 @@ namespace osmscout {
    * for example street name, where string are not binary equals,
    * but are "same" for human - for example "Baker Street" and "Baker  street"
    *
+   * Normalized string is converted to lowercase, all whitespaces are converted
+   * to standard space and multiple following spaces are collapsed to one.
+   *
    * @param text
    *    Text to get converted
    * @return
    *    Converted text
-   *
-   * @note that a global C++ locale must be set for more than simple ASCII conversions to work.
    */
   extern OSMSCOUT_API std::string UTF8NormForLookup(const std::string& text);
 
   /**
-   * Transliterate non-ascii characters to one or more characters that are similar to the original character.
-   * When there is no transformation available, question mark is used (iconv implementation)
-   * or original character is keep in place (translation table implementation).
+   * Transliterate non-ascii characters to one or more characters that are similar
+   * to the original character. When there is no transformation available, original
+   * character is keep in place (translation table implementation).
    *
    * @param text
    *    Text to get converted
    * @return
    *    Converted text
    *
-   * @note that a global C++ locale must be set for more than simple ASCII conversions to work.
    */
   extern OSMSCOUT_API std::string UTF8Transliterate(const std::string& text);
 

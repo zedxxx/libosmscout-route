@@ -46,17 +46,17 @@ namespace osmscout {
     FileOffset startOffset; //!< Offset for the first data entry referenced in the file. Data will be read starting from this position
     uint32_t   count;       //!< Number of entries to read.
 
-    inline bool operator<(const DataBlockSpan& other) const
+    bool operator<(const DataBlockSpan& other) const
     {
       return startOffset<other.startOffset;
     }
 
-    inline bool operator==(const DataBlockSpan& other) const
+    bool operator==(const DataBlockSpan& other) const
     {
       return startOffset==other.startOffset && count==other.count;
     }
 
-    inline bool operator!=(const DataBlockSpan& other) const
+    bool operator!=(const DataBlockSpan& other) const
     {
       return startOffset!=other.startOffset || count!=other.count;
     }
@@ -98,7 +98,8 @@ namespace osmscout {
                   N& data) const;
 
   public:
-    DataFile(const std::string& datafile, size_t cacheSize);
+    DataFile(const std::string& datafile,
+             size_t cacheSize);
 
     // disable copy and move
     DataFile(const DataFile&) = delete;
@@ -116,7 +117,7 @@ namespace osmscout {
 
     void FlushCache();
 
-    inline std::string GetFilename() const
+    std::string GetFilename() const
     {
       return datafilename;
     }
@@ -175,7 +176,7 @@ namespace osmscout {
       data.Read(*typeConfig,
                 scanner);
     }
-    catch (IOException& e) {
+    catch (const IOException& e) {
       log.Error() << e.GetDescription();
       return false;
     }
@@ -195,7 +196,7 @@ namespace osmscout {
       data.Read(*typeConfig,
                 scanner);
     }
-    catch (IOException& e) {
+    catch (const IOException& e) {
       log.Error() << e.GetDescription();
       return false;
     }
@@ -222,7 +223,7 @@ namespace osmscout {
                    FileScanner::LowMemRandom,
                    memoryMappedData);
     }
-    catch (IOException& e) {
+    catch (const IOException& e) {
       log.Error() << e.GetDescription();
       scanner.CloseFailsafe();
       return false;
@@ -258,7 +259,7 @@ namespace osmscout {
         scanner.Close();
       }
     }
-    catch (IOException& e) {
+    catch (const IOException& e) {
       log.Error() << e.GetDescription();
       scanner.CloseFailsafe();
       return false;
@@ -270,7 +271,7 @@ namespace osmscout {
   template <class N>
   void DataFile<N>::FlushCache()
   {
-    std::lock_guard<std::mutex> lock(accessMutex);
+    std::scoped_lock<std::mutex> lock(accessMutex);
     cache.Flush();
   }
 
@@ -308,7 +309,7 @@ namespace osmscout {
     }
 
     data.reserve(data.size()+size);
-    std::lock_guard<std::mutex> lock(accessMutex);
+    std::scoped_lock<std::mutex> lock(accessMutex);
 
     if (cache.GetMaxSize()>0 &&
         size>cache.GetMaxSize()){
@@ -355,7 +356,7 @@ namespace osmscout {
     }
 
     data.reserve(data.size()+size);
-    std::lock_guard<std::mutex> lock(accessMutex);
+    std::scoped_lock<std::mutex> lock(accessMutex);
 
     if (cache.GetMaxSize()>0 &&
         size>cache.GetMaxSize()){
@@ -433,7 +434,7 @@ namespace osmscout {
       return false;
     }
 
-    for (const auto entry : data) {
+    for (const auto& entry : data) {
       dataMap.insert(std::make_pair(entry->GetFileOffset(),entry));
     }
 
@@ -449,7 +450,7 @@ namespace osmscout {
   bool DataFile<N>::GetByOffset(FileOffset offset,
                                 ValueType& entry) const
   {
-    std::lock_guard<std::mutex> lock(accessMutex);
+    std::scoped_lock<std::mutex> lock(accessMutex);
 
     ValueCacheRef entryRef;
     if (cache.GetEntry(offset,entryRef)){
@@ -484,7 +485,7 @@ namespace osmscout {
       return true;
     }
 
-    std::lock_guard<std::mutex> lock(accessMutex);
+    std::scoped_lock<std::mutex> lock(accessMutex);
 
     try {
       bool offsetSetup=false;
@@ -519,7 +520,7 @@ namespace osmscout {
 
       return true;
     }
-    catch (IOException& e) {
+    catch (const IOException& e) {
       log.Error() << e.GetDescription();
       return false;
     }
@@ -544,7 +545,7 @@ namespace osmscout {
     data.reserve(data.size()+overallCount);
 
     try {
-      std::lock_guard<std::mutex> lock(accessMutex);
+      std::scoped_lock<std::mutex> lock(accessMutex);
       for (IteratorIn spanIter=begin; spanIter!=end; ++spanIter) {
         if (spanIter->count==0) {
           continue;
@@ -580,7 +581,7 @@ namespace osmscout {
         }
       }
     }
-    catch (IOException& e) {
+    catch (const IOException& e) {
       log.Error() << e.GetDescription();
       return false;
     }

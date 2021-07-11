@@ -20,14 +20,9 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
-// For memcpy
-#include <cstring>
 #include <vector>
 
 #include <osmscout/CoreImportExport.h>
-
-#include <osmscout/GeoCoord.h>
-#include <osmscout/Pixel.h>
 
 #include <osmscout/util/Geometry.h>
 #include <osmscout/util/Logger.h>
@@ -39,129 +34,329 @@
 namespace osmscout {
 
   /**
+   * Entry in the TransBuffer structure.
+   *
+   * A transformation object has a coordinate and a flag that signals that it should be either drawn or dropped.
+   * Singular coordinates can be dropped due to optimizations with the goal to reduce rendering nodes without
+   * sacrificing display quality.
+   *
    * \ingroup Geometry
    */
-  class OSMSCOUT_API TransPolygon CLASS_FINAL
+  struct OSMSCOUT_API TransPoint
+  {
+    bool   draw;
+    double x;
+    double y;
+  };
+
+  /**
+   * Temporary stateful buffer for holding results of transformation of polygon from geo coords to display coords.
+   *
+   * \ingroup Geometry
+   */
+  class OSMSCOUT_API TransBuffer CLASS_FINAL
   {
   private:
-    size_t  pointsSize;
-    size_t  length;
-    size_t  start;
-    size_t  end;
+    size_t pointsSize=0;
+    size_t length=0;
+    size_t start=0;
+    size_t end=0;
 
   public:
-    enum OptimizeMethod
-    {
-      none = 0,
-      fast = 1,
-      quality = 2
-    };
-
-    enum OutputConstraint
-    {
-      noConstraint = 0,
-      simple = 1
-    };
-
-    struct OSMSCOUT_API TransPoint
-    {
-      bool   draw;
-      double x;
-      double y;
-    };
+    TransPoint* points=nullptr;
 
   private:
-    struct TransPointRef
-    {
-      TransPoint *p;
-
-      inline double GetLat() const
-      {
-        return p->x;
-      }
-
-      inline double GetLon() const
-      {
-        return p->y;
-      }
-
-      inline bool IsEqual(const TransPointRef &other) const
-      {
-        return p==other.p;
-      }
-    };
+    void Reserve(size_t size);
 
   public:
-    TransPoint* points;
+    TransBuffer() = default;
+    ~TransBuffer();
 
-  private:
-    void TransformGeoToPixel(const Projection& projection,
-                             const std::vector<GeoCoord>& nodes);
-    void TransformGeoToPixel(const Projection& projection,
-                             const std::vector<Point>& nodes);
-    void DropSimilarPoints(double optimizeErrorTolerance);
-    void DropRedundantPointsFast(double optimizeErrorTolerance);
-    void DropRedundantPointsDouglasPeucker(double optimizeErrorTolerance, bool isArea);
-    void DropEqualPoints();
-    void EnsureSimple(bool isArea);
-
-  public:
-    TransPolygon();
-    ~TransPolygon();
-
-    inline bool IsEmpty() const
+    /**
+     * Return true, if the TransBuffer holds data (length==0)
+     * @return
+     */
+    bool IsEmpty() const
     {
       return length==0;
     }
 
-    inline size_t GetLength() const
+    /**
+     * Return the number of to be drawn points
+     * @return
+     */
+    size_t GetLength() const
     {
       return length;
     }
 
-    inline size_t GetStart() const
+    /**
+     * Return the inex of the first to be drawn point
+     * @return
+     */
+    size_t GetStart() const
     {
       return start;
     }
 
-    inline size_t GetEnd() const
+    /**
+     * Return the last to be drawn point
+     * @return
+     */
+    size_t GetEnd() const
     {
       return end;
     }
 
-    void TransformArea(const Projection& projection,
-                       OptimizeMethod optimize,
-                       const std::vector<GeoCoord>& nodes,
-                       double optimizeErrorTolerance,
-                       OutputConstraint constraint=noConstraint);
-    void TransformArea(const Projection& projection,
-                       OptimizeMethod optimize,
-                       const std::vector<Point>& nodes,
-                       double optimizeErrorTolerance,
-                       OutputConstraint constraint=noConstraint);
+    /**
+     * Reset length, start and end
+     */
+    void Reset();
 
-    void TransformWay(const Projection& projection,
-                      OptimizeMethod optimize,
-                      const std::vector<GeoCoord>& nodes,
-                      double optimizeErrorTolerance,
-                      OutputConstraint constraint=noConstraint);
-    void TransformWay(const Projection& projection,
-                      OptimizeMethod optimize,
-                      const std::vector<Point>& nodes,
-                      double optimizeErrorTolerance,
-                      OutputConstraint constraint=noConstraint);
+    /**
+     * After direct writing access to the points array to have to call this method to
+     * correct internal start, end and length variables
+     */
+    void CalcSize();
 
-    void TransformBoundingBox(const Projection& projection,
-                              OptimizeMethod optimize,
-                              const GeoBox& boundingBox,
-                              double optimizeErrorTolerance,
-                              OutputConstraint constraint=noConstraint);
+    /**
+     * Transform the given source array of GeoCoords to DisplayPoints in the buffer
+     *
+     * @tparam C
+     *    a container object like list, vector or array
+     * @param projection
+     *    The projection to use for transformation from geo coordinates to display coordinates
+     * @param nodes
+     *    The container holding the geo coordinates
+     */
+    template<typename C>
+    void  TransformGeoToPixel(const Projection& projection,
+                              const C& nodes)
+    {
+      Projection::BatchTransformer batchTransformer(projection);
 
+      if (!nodes.empty()) {
+        Reserve(nodes.size());
+
+        start=0;
+        length=nodes.size();
+        end=length-1;
+
+        for (size_t i=start; i<=end; i++) {
+          batchTransformer.GeoToPixel(nodes[i].GetLon(),
+                                      nodes[i].GetLat(),
+                                      points[i].x,
+                                      points[i].y);
+          points[i].draw=true;
+        }
+      }
+    }
+
+    /**
+     * Return the bounding box of the to be drawn display coordinates
+     *
+     * @param xmin
+     * @param ymin
+     * @param xmax
+     * @param ymax
+     * @return
+     */
     bool GetBoundingBox(double& xmin, double& ymin,
                         double& xmax, double& ymax) const;
   };
 
   /**
+   * Class to allows transformation of geometric primitives form geo coordinate to display
+   * coordinates using the passed Projection instance.
+   *
+   * A number of optimizations on the resulting display coordinates objects can be triggered to
+   * reduce the number of to-be-rendered pixels.
+   *
+   * In one pass only one geometric primitive can be transformed, however to reduce memory allocation
+   * and reallocation TransPolygon can be reused.
+   *
+   * \ingroup Geometry
+   */
+  class OSMSCOUT_API TransPolygon CLASS_FINAL
+  {
+  public:
+    enum OptimizeMethod
+    {
+      none   =0,
+      fast   =1,
+      quality=2
+    };
+
+    enum OutputConstraint
+    {
+      noConstraint=0,
+      simple      =1
+    };
+  };
+
+  /**
+   * Optimize a already transformed area
+   */
+  extern OSMSCOUT_API void OptimizeArea(TransBuffer& buffer,
+                                        TransPolygon::OptimizeMethod optimize,
+                                        double optimizeErrorTolerance,
+                                        TransPolygon::OutputConstraint constraint);
+
+  /**
+   * Optimize a already transformed way
+   */
+  extern OSMSCOUT_API void OptimizeWay(TransBuffer& buffer,
+                                       TransPolygon::OptimizeMethod optimize,
+                                       double optimizeErrorTolerance,
+                                       TransPolygon::OutputConstraint constraint);
+
+  /**
+   * Transform form geo to screen coordinates and (optionally) optimize the passed area with the given coordinates
+   * @tparam C container type for the geo coordinates of the area
+   * @param nodes
+   *    Area coordinates
+   * @param buffer
+   *    TransBuffer instance for memory caching
+   * @param projection
+   *    Projection to use
+   * @param optimize
+   *    Mode of optimization
+   * @param optimizeErrorTolerance
+   * @param constraint
+   */
+  template<typename C>
+  void TransformArea(const C& nodes,
+                     TransBuffer& buffer,
+                     const Projection& projection,
+                     TransPolygon::OptimizeMethod optimize,
+                     double optimizeErrorTolerance,
+                     TransPolygon::OutputConstraint constraint=TransPolygon::noConstraint)
+  {
+    buffer.Reset();
+
+    if (nodes.size()<2) {
+      return;
+    }
+
+    buffer.TransformGeoToPixel(projection,
+                               nodes);
+
+    if (optimize!=TransPolygon::none) {
+      OptimizeArea(buffer,
+                   optimize,
+                   optimizeErrorTolerance,
+                   constraint);
+    }
+  }
+
+  /**
+   * Transform form geo to screen coordinates and (optionally) optimize the passed way with the given coordinates
+   * @tparam C container type for the geo coordinates of the area
+   * @param nodes
+   *    Area coordinates
+   * @param buffer
+   *    TransBuffer instance for memory caching
+   * @param projection
+   *    Projection to use
+   * @param optimize
+   *    Mode of optimization
+   * @param optimizeErrorTolerance
+   * @param constraint
+   */
+  template<typename C>
+  void TransformWay(const C& nodes,
+                    TransBuffer& buffer,
+                    const Projection& projection,
+                    TransPolygon::OptimizeMethod optimize,
+                    double optimizeErrorTolerance,
+                    TransPolygon::OutputConstraint constraint=TransPolygon::noConstraint)
+  {
+    buffer.Reset();
+
+    if (nodes.empty()) {
+      return;
+    }
+
+    buffer.TransformGeoToPixel(projection,
+                               nodes);
+
+    if (optimize!=TransPolygon::none) {
+      OptimizeWay(buffer,
+                  optimize,
+                  optimizeErrorTolerance,
+                  constraint);
+    }
+  }
+
+
+  /**
+   * Transform form geo to screen coordinates and (optionally) optimize the passed way with the given coordinates
+   * @tparam C
+   *    Container type for the geo coordinates of the area
+   * @param boundingBox
+   *    bounding box
+   * @param buffer
+   *    TransBuffer instance for memory caching
+   * @param projection
+   *    Projection to use
+   * @param optimize
+   *    Mode of optimization
+   * @param optimizeErrorTolerance
+   * @param constraint
+   */
+  extern OSMSCOUT_API void TransformBoundingBox(const GeoBox& boundingBox,
+                                                TransBuffer& buffer,
+                                                const Projection& projection,
+                                                TransPolygon::OptimizeMethod optimize,
+                                                double optimizeErrorTolerance,
+                                                TransPolygon::OutputConstraint constraint=TransPolygon::noConstraint);
+
+  /**
+   * Hold a reference to a range of data within a CoordBuffer.
+   *
+   * \ingroup Geometry
+   */
+  class OSMSCOUT_API CoordBufferRange CLASS_FINAL
+  {
+  private:
+    size_t start=std::numeric_limits<size_t>::max();
+    size_t end=std::numeric_limits<size_t>::max();
+
+  public:
+    CoordBufferRange() = default;
+    CoordBufferRange(const CoordBufferRange& other) = default;
+
+    CoordBufferRange(size_t start, size_t end)
+      : start(start),
+        end(end)
+    {
+    }
+
+    size_t GetStart() const
+    {
+      return start;
+    }
+
+    size_t GetEnd() const
+    {
+      return end;
+    }
+  };
+
+  /**
+   * Buffer structure for Vertex2D data. You can add coordinates to the buffer and get the position
+   * of the coordinate in the buffer in return.
+   *
+   * The CoordBuffer automatically resizes by a factor of 2 if its is too small to hold the additional data.
+   * The initial size of the buffer should be able to hold "enough" data. If you thus get reallocation
+   * log warnings this is not an error, but if it happens too often you are either not reusing
+   * CoordBuffer instances as much as possible or are pushing more geometric data than we expect to
+   * be sensible for mobile or desktop rendering. Check your allocation strategy for MapPainte rinstances
+   * or style sheet in this case,
+   *
+   * CoordBuffer also allows also higher level operations on the buffer to generate copies
+   * of stored objects.
+   *
    * \ingroup Geometry
    */
   class OSMSCOUT_API CoordBuffer CLASS_FINAL
@@ -175,9 +370,11 @@ namespace osmscout {
 
   public:
     CoordBuffer();
+    CoordBuffer(const CoordBuffer& other)   = delete;
     ~CoordBuffer();
 
     void Reset();
+
     size_t PushCoord(double x, double y);
 
     /**
@@ -185,47 +382,122 @@ namespace osmscout {
      * Result is stored after the last valid point. Generated way offsets are returned
      * in start and end.
      *
-     * @param orgStart original way start
-     * @param orgEnd original way end (inclusive)
+     * Way have to have at least two nodes (orgEnd > orgStart)
+     *
+     * @param org original range of data in the CoordBuffer
      * @param offset offset of parallel way - positive offset is left, negative right
-     * @param start start of result
-     * @param end end of result (inclusive)
-     * @return true on success, false othervise
+     * @return range of data in the CoordBuffer
      */
-    bool GenerateParallelWay(size_t orgStart,
-                             size_t orgEnd,
-                             double offset,
-                             size_t& start,
-                             size_t& end);
+    CoordBufferRange GenerateParallelWay(const CoordBufferRange& org,
+                                         double offset);
   };
 
+  extern OSMSCOUT_API CoordBufferRange CopyPolygonToCoordBuffer(const TransBuffer& transBuffer,
+                                                                CoordBuffer& coordBuffer);
 
   /**
-   * \ingroup Geometry
+   * Transform the geo coordinates to display coordinates of the given area and copy the resulting coordinates
+   * the the given CoordBuffer.
+   *
+   * @tparam C
+   *    Container type for the geo coordinates of the area
+   * @param nodes
+   *    area coordinates
+   * @param transBuffer
+   *    TransBuffer instance for memory caching
+   * @param coordBuffer
+   *    Target CoordBuffer
+   * @param projection
+   *    Projection to use
+   * @param optimize
+   * @param optimizeErrorTolerance
+   * @return
+   *    The resulting coordinate range in the CoordBuffer
    */
-  class OSMSCOUT_API TransBuffer CLASS_FINAL
+  template<typename C>
+  CoordBufferRange TransformArea(const C& nodes,
+                                 TransBuffer& transBuffer,
+                                 CoordBuffer& coordBuffer,
+                                 const Projection& projection,
+                                 TransPolygon::OptimizeMethod optimize,
+                                 double optimizeErrorTolerance)
   {
-  public:
-    TransPolygon transPolygon;
-    CoordBuffer  *buffer;
+    TransformArea(nodes,
+                  transBuffer,
+                  projection,
+                  optimize,
+                  optimizeErrorTolerance);
 
-  public:
-    explicit TransBuffer(CoordBuffer* buffer);
-    ~TransBuffer();
+    assert(!transBuffer.IsEmpty());
 
-    void Reset();
+    return CopyPolygonToCoordBuffer(transBuffer,
+                                    coordBuffer);
+  }
 
-    void TransformArea(const Projection& projection,
-                       TransPolygon::OptimizeMethod optimize,
-                       const std::vector<Point>& nodes,
-                       size_t& start, size_t &end,
-                       double optimizeErrorTolerance);
-    bool TransformWay(const Projection& projection,
-                      TransPolygon::OptimizeMethod optimize,
-                      const std::vector<Point>& nodes,
-                      size_t& start, size_t &end,
-                      double optimizeErrorTolerance);
-  };
+  /**
+   * Transform the geo coordinates to display coordinates of the given way and copy the resulting coordinates
+   * the the given CoordBuffer.
+   *
+   * @tparam C
+   *    Container type for the geo coordinates of the area
+   * @param nodes
+   *    way coordinates
+   * @param transBuffer
+   *    TransBuffer instance for memory caching
+   * @param coordBuffer
+   *    Target CoordBuffer
+   * @param projection
+   *    Projection to use
+   * @param optimize
+   * @param optimizeErrorTolerance
+   * @return
+   *    The resulting coordinate range in the CoordBuffer
+   */
+  template<typename C>
+  CoordBufferRange TransformWay(const C& nodes,
+                                TransBuffer& transBuffer,
+                                CoordBuffer& coordBuffer,
+                                const Projection& projection,
+                                TransPolygon::OptimizeMethod optimize,
+                                double optimizeErrorTolerance)
+  {
+    TransformWay(nodes,
+                 transBuffer,
+                 projection,
+                 optimize,
+                 optimizeErrorTolerance);
+
+    assert(!transBuffer.IsEmpty());
+
+    return CopyPolygonToCoordBuffer(transBuffer,
+                                    coordBuffer);
+  }
+
+  /**
+   * Transform the geo coordinates to display coordinates of the given bounding box and copy the resulting coordinates
+   * the the given CoordBuffer.
+   *
+   * @tparam C
+   *    Container type for the geo coordinates of the area
+   * @param boundingBox
+   *    bounding box
+   * @param transBuffer
+   *    TransBuffer instance for memory caching
+   * @param coordBuffer
+   *    Target CoordBuffer
+   * @param projection
+   *    Projection to use
+   * @param optimize
+   * @param optimizeErrorTolerance
+   * @return
+   *    The resulting coordinate range in the CoordBuffer
+   */
+  extern OSMSCOUT_API CoordBufferRange TransformBoundingBox(const GeoBox& boundingBox,
+                                                            TransBuffer& buffer,
+                                                            CoordBuffer& coordBuffer,
+                                                            const Projection& projection,
+                                                            TransPolygon::OptimizeMethod optimize,
+                                                            double optimizeErrorTolerance);
 }
 
 #endif

@@ -47,10 +47,10 @@ namespace osmscout {
 
     virtual void SetStep(const std::string& step);
     virtual void SetAction(const std::string& action);
-    virtual void SetProgress(double current, double total);
-    virtual void SetProgress(unsigned int current, unsigned int total);
-    virtual void SetProgress(unsigned long current, unsigned long total);
-    virtual void SetProgress(unsigned long long current, unsigned long long total);
+    virtual void SetProgress(double current, double total, const std::string& label="");
+    virtual void SetProgress(unsigned int current, unsigned int total, const std::string& label="");
+    virtual void SetProgress(unsigned long current, unsigned long total, const std::string& label="");
+    virtual void SetProgress(unsigned long long current, unsigned long long total, const std::string& label="");
     virtual void Debug(const std::string& text);
     virtual void Info(const std::string& text);
     virtual void Warning(const std::string& text);
@@ -61,7 +61,7 @@ namespace osmscout {
   {
     public:
     SilentProgress() = default;
-    ~SilentProgress() override;
+    ~SilentProgress() override = default;
   };
 
   class OSMSCOUT_API ConsoleProgress : public Progress
@@ -71,14 +71,14 @@ namespace osmscout {
 
   public:
     ConsoleProgress() = default;
-    virtual ~ConsoleProgress() = default;
+    ~ConsoleProgress() override = default;
 
     void SetStep(const std::string& step) override;
     void SetAction(const std::string& action) override;
-    void SetProgress(double current, double total) override;
-    void SetProgress(unsigned int current, unsigned int total) override;
-    void SetProgress(unsigned long current, unsigned long total) override;
-    void SetProgress(unsigned long long current, unsigned long long total) override;
+    void SetProgress(double current, double total, const std::string& label) override;
+    void SetProgress(unsigned int current, unsigned int total,const std::string& label) override;
+    void SetProgress(unsigned long current, unsigned long total, const std::string& label="") override;
+    void SetProgress(unsigned long long current, unsigned long long total, const std::string& label="") override;
 
     void Debug(const std::string& text) override;
     void Info(const std::string& text) override;

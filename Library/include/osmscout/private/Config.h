@@ -13,7 +13,7 @@
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #ifndef HAVE_DLFCN_H
-/* #undef HAVE_DLFCN_H */
+#define HAVE_DLFCN_H 1
 #endif
 
 /* Define to 1 if you have the <fcntl.h> header file. */
@@ -288,7 +288,7 @@
 
 /* Define to the full name and version of this package. */
 #ifndef PACKAGE_STRING
-#define PACKAGE_STRING "libosmscout 0.1.0"
+#define PACKAGE_STRING "libosmscout 1.1.1"
 #endif
 
 /* Define to the one symbol short name of this package. */
@@ -303,7 +303,7 @@
 
 /* Define to the version of this package. */
 #ifndef PACKAGE_VERSION
-#define PACKAGE_VERSION "0.1.0"
+#define PACKAGE_VERSION "1.1.1"
 #endif
 
 /* Define to 1 if you have the ANSI C header files. */
@@ -323,22 +323,22 @@
 
 /* libprotobuf detected */
 #ifndef HAVE_LIB_PROTOBUF
-/* #undef HAVE_LIB_PROTOBUF */
+#define HAVE_LIB_PROTOBUF 1
 #endif
 
 /* libxml detected */
 #ifndef HAVE_LIB_XML
-/* #undef HAVE_LIB_XML */
+#define HAVE_LIB_XML 1
 #endif
 
 /* zlib detected */
 #ifndef HAVE_LIB_ZLIB
-/* #undef HAVE_LIB_ZLIB */
+#define HAVE_LIB_ZLIB 1
 #endif
 
 /* iconv detected */
 #ifndef HAVE_ICONV
-/* #undef HAVE_ICONV */
+#define HAVE_ICONV 1
 #endif
 #ifndef ICONV_CONST
 #define ICONV_CONST 
@@ -351,12 +351,12 @@
 
 /* freetype detected */
 #ifndef HAVE_LIB_FREETYPE
-/* #undef HAVE_LIB_FREETYPE */
+#define HAVE_LIB_FREETYPE 1
 #endif
 
 /* cairo detected */
 #ifndef HAVE_LIB_CAIRO
-/* #undef HAVE_LIB_CAIRO */
+#define HAVE_LIB_CAIRO 1
 #endif
 
 /* pango detected */

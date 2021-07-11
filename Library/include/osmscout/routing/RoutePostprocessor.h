@@ -63,7 +63,7 @@ namespace osmscout {
     class OSMSCOUT_API Postprocessor
     {
     public:
-      virtual ~Postprocessor();
+      virtual ~Postprocessor() = default;
 
       virtual bool Process(const RoutePostprocessor& postprocessor,
                            RouteDescription& description) = 0;
@@ -441,8 +441,6 @@ namespace osmscout {
      * This would also move state out of the RoutePostprocessor itself.
      */
     friend Postprocessor;
-
-    RoutePostprocessor();
 
     bool PostprocessRouteDescription(RouteDescription& description,
                                      const std::vector<RoutingProfileRef>& profiles,
