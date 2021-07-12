@@ -3,13 +3,24 @@
 
 #include <osmscout/Database.h>
 #include <osmscout/routing/SimpleRoutingService.h>
+#include <osmscout/routing/MultiDBRoutingService.h>
 
 struct RouterContext {
     osmscout::DatabaseParameter databaseParameter{};
     osmscout::DatabaseRef database = nullptr;
 
+    std::vector<osmscout::DatabaseRef> databases{};
+
     osmscout::RouterParameter routerParameter{};
     osmscout::SimpleRoutingServiceRef router = nullptr;
+    osmscout::MultiDBRoutingServiceRef routerMulti = nullptr;
+
+    bool isMulti = false;
+    bool isMultiOpened = false;
+
+    route_profile prevProfile = ROUTE_PROFILE_UNDEF;
+    std::shared_ptr<osmscout::FastestPathRoutingProfile> routingProfileSingle = nullptr;
+    osmscout::MultiDBRoutingService::RoutingProfileBuilder profileBuilderMulti = nullptr;
 
     uint32_t pointsCount = 0;
     point_t* points = nullptr;
@@ -33,7 +44,14 @@ RouterContext::~RouterContext()
     Clear();
 
     router = nullptr;
+    routerMulti = nullptr;
+
     database = nullptr;
+
+    for (auto &db: databases) {
+        db->Close();
+        db.reset();
+    }
 }
 
 void RouterContext::Clear()
@@ -48,7 +66,16 @@ void RouterContext::Clear()
         router->Close();
     }
 
+    if (routerMulti && isMultiOpened) {
+        isMultiOpened = false;
+        routerMulti->Close();
+    }
+
     err.clear();
+
+    prevProfile = ROUTE_PROFILE_UNDEF;
+    routingProfileSingle = nullptr;
+    profileBuilderMulti = nullptr;
 }
 
 #endif

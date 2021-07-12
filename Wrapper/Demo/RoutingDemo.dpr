@@ -16,29 +16,33 @@ begin
 end;
 
 var
-  VDatabasePath: AnsiString;
+  I: Integer;
+  VDatabases: array of AnsiString;
   VStartPoint, VTargetPoint: point_t;
 begin
   try
     if ParamCount < 5 then begin
       Writeln('Usage:');
-      Writeln('  ',  ExtractFileName(ParamStr(0)), ' DATABASE START TARGET');
+      Writeln('  ',  ExtractFileName(ParamStr(0)), ' START TARGET DATABASE 1 [... DATABASE X]');
       Writeln;
-      Writeln('DATABASE          Directory of the database to use');
-      Writeln('START             start coordinate');
-      Writeln('TARGET            target coordinate');
+      Writeln('START                       Start coordinate');
+      Writeln('TARGET                      Target coordinate');
+      Writeln('DATABASE 1 [... DATABASE X] Directories with databases to use');
       Exit;
     end;
 
-    VDatabasePath := AnsiString(ParamStr(1));
+    VStartPoint.lat := ReadCoordinate(ParamStr(1));
+    VStartPoint.lon := ReadCoordinate(ParamStr(2));
 
-    VStartPoint.lat := ReadCoordinate(ParamStr(2));
-    VStartPoint.lon := ReadCoordinate(ParamStr(3));
+    VTargetPoint.lat := ReadCoordinate(ParamStr(3));
+    VTargetPoint.lon := ReadCoordinate(ParamStr(4));
 
-    VTargetPoint.lat := ReadCoordinate(ParamStr(4));
-    VTargetPoint.lon := ReadCoordinate(ParamStr(5));
+    SetLength(VDatabases, ParamCount - 4);
+    for I := 0 to Length(VDatabases) - 1 do begin
+      VDatabases[I] := AnsiString(ParamStr(I + 1 + 4));
+    end;
 
-    PrintRoute(VDatabasePath, VStartPoint, VTargetPoint);
+    PrintRoute(VStartPoint, VTargetPoint, VDatabases);
   except
     on E: Exception do begin
       Writeln(E.ClassName, ': ', E.Message);

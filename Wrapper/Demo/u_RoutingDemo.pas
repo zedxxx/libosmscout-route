@@ -6,9 +6,9 @@ uses
   libosmscout_route;
 
 procedure PrintRoute(
-  const ADatabasePath: AnsiString;
   const AStartPoint: point_t;
-  const ATargetPoint: point_t
+  const ATargetPoint: point_t;
+  const ADatabases: array of AnsiString
 );
 
 implementation
@@ -30,9 +30,9 @@ begin
 end;
 
 procedure PrintRoute(
-  const ADatabasePath: AnsiString;
   const AStartPoint: point_t;
-  const ATargetPoint: point_t
+  const ATargetPoint: point_t;
+  const ADataBases: array of AnsiString
 );
 var
   I: Integer;
@@ -45,6 +45,7 @@ var
   {$ELSE}
   VExceptionMask: TFPUExceptionMask;
   {$IFEND}
+  VDataBasesArr: array of PAnsiChar;
 begin
   LibOsmScoutRouteInitialize;
 
@@ -54,8 +55,23 @@ begin
 
   VCtx := nil;
   try
-    if not router.new(VCtx, PAnsiChar(ADatabasePath)) then begin
-      RiseLibOsmScoutError(VCtx, 'new');
+    VCount := Length(ADataBases);
+    if VCount = 0 then begin
+      raise Exception.Create('Expected at least one DataBase path!');
+    end;
+
+    if VCount = 1 then begin
+      if not router.new(VCtx, PAnsiChar(ADataBases[0])) then begin
+        RiseLibOsmScoutError(VCtx, 'new');
+      end;
+    end else begin
+      SetLength(VDataBasesArr, VCount);
+      for I := 0 to VCount - 1 do begin
+        VDataBasesArr[I] := PAnsiChar(ADataBases[I]);
+      end;
+      if not router.new_multi(VCtx, @VDataBasesArr[0], VCount) then begin
+        RiseLibOsmScoutError(VCtx, 'new_multi');
+      end;
     end;
 
     VCalcResult := router.calc(VCtx, ROUTE_PROFILE_BIKE, @AStartPoint,

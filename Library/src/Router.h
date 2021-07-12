@@ -18,7 +18,8 @@ extern "C"
 enum route_profile {
     ROUTE_PROFILE_CAR,
     ROUTE_PROFILE_BIKE,
-    ROUTE_PROFILE_FOOT
+    ROUTE_PROFILE_FOOT,
+    ROUTE_PROFILE_UNDEF
 };
 
 enum route_calc_result {
@@ -35,6 +36,7 @@ typedef struct {
 DLL_EXPORT void router_init();
 
 DLL_EXPORT bool router_new(void** ctx, const char* db_path);
+DLL_EXPORT bool router_new_multi(void** ctx_ptr, const char* db_path[], uint32_t db_count);
 DLL_EXPORT void router_del(void* ctx);
 
 DLL_EXPORT route_calc_result router_calc(void* ctx, route_profile profile,
@@ -49,5 +51,5 @@ DLL_EXPORT const char* router_get_error_message(void* ctx);
 }
 #endif
 
-#endif // header guard 
+#endif // header guard
 
