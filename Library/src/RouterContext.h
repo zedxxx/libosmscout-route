@@ -65,10 +65,16 @@ void RouterContext::Clear()
     if (router && router->IsOpen()) {
         router->Close();
     }
+    if (database) {
+        database->FlushCache();
+    }
 
     if (routerMulti && isMultiOpened) {
         isMultiOpened = false;
         routerMulti->Close();
+    }
+    for (auto &db: databases) {
+        db->FlushCache();
     }
 
     err.clear();

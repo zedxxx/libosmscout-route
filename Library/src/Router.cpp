@@ -47,7 +47,7 @@ DLL_EXPORT bool router_new(void** ctx_ptr, const char* db_path)
 
     ctx->router = std::make_shared<osmscout::SimpleRoutingService>(ctx->database,
                                                                    ctx->routerParameter,
-                                                                   "");
+                                                                   osmscout::RoutingService::DEFAULT_FILENAME_BASE);
 
     return true;
 };
@@ -180,7 +180,7 @@ RouterCalcMulti(RouterContext* ctx, route_profile profile,
     if (!ctx->isMultiOpened){
         ctx->isMultiOpened = router->Open(ctx->profileBuilderMulti);
         if (!ctx->isMultiOpened){
-            ctx->err = "Cannot open routing databases";
+            ctx->err = "Router open failed!";
             return CALC_RESULT_ERROR;
         }
     }
@@ -201,7 +201,7 @@ RouterCalcMulti(RouterContext* ctx, route_profile profile,
 
     osmscout::RoutePosition start = startResult.GetRoutePosition();
     if (start.GetObjectFileRef().GetType() == osmscout::refNode) {
-        ctx->err = "Cannot find start node for start location!";
+        ctx->err = "Can't find start node for start location!";
     }
 
     osmscout::GeoCoord targetCoord{p2->lat, p2->lon};
@@ -282,7 +282,7 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
     // open router
     if (!router->IsOpen()) {
         if (!router->Open()) {
-            ctx->err = "Cannot open routing database";
+            ctx->err = "Router open failed!";
             ctx->router = nullptr;
             return CALC_RESULT_ERROR;
         }
@@ -306,7 +306,7 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
 
     osmscout::RoutePosition start = startResult.GetRoutePosition();
     if (start.GetObjectFileRef().GetType() == osmscout::refNode) {
-        ctx->err = "Cannot find start node for start location!";
+        ctx->err = "Can't find start node for start location!";
     }
 
     osmscout::GeoCoord targetCoord{p2->lat, p2->lon};
@@ -326,7 +326,7 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
 
     osmscout::RoutePosition target = targetResult.GetRoutePosition();
     if (target.GetObjectFileRef().GetType() == osmscout::refNode) {
-        ctx->err = "Cannot find start node for target location!";
+        ctx->err = "Can't find start node for target location!";
     }
 
     osmscout::RoutingParameter parameter;
