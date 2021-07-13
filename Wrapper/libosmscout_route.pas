@@ -2,6 +2,10 @@ unit libosmscout_route;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 uses
   SysUtils;
 

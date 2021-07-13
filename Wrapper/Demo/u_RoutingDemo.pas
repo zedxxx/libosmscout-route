@@ -2,6 +2,10 @@ unit u_RoutingDemo;
 
 interface
 
+{$IFDEF FPC}
+  {$MODE DELPHI}
+{$ENDIF}
+
 uses
   libosmscout_route;
 
@@ -29,6 +33,12 @@ begin
   );
 end;
 
+{$IFNDEF FPC}
+  {$IF CompilerVersion >= 33}
+    {$DEFINE USE_NEW_EXCEPTION_MASK}
+  {$IFEND}
+{$ENDIF}
+
 procedure PrintRoute(
   const AStartPoint: point_t;
   const ATargetPoint: point_t;
@@ -40,12 +50,12 @@ var
   VCount: uint32_t;
   VPoints: ppoint_t;
   VCalcResult: TRouteCalcResult;
-  {$IF CompilerVersion >= 33}
+  {$IFDEF USE_NEW_EXCEPTION_MASK}
   VExceptionMask: TArithmeticExceptionMask;
   {$ELSE}
   VExceptionMask: TFPUExceptionMask;
-  {$IFEND}
-  VDataBasesArr: array of PAnsiChar;
+  {$ENDIF}
+  VDataBasesArr: array of PAnsiChar {$IFDEF FPC} = nil {$ENDIF};
 begin
   LibOsmScoutRouteInitialize;
 

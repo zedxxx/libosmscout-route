@@ -5,6 +5,8 @@ Wrapper/**/bin/**
 Wrapper/**/*.~dsk
 Wrapper/**/*.local
 Wrapper/**/*.identcache
+Wrapper/**/backup/**
+Wrapper/**/*.lps
 
 /Library/bin/**
 /Library/obj/**
