@@ -13,7 +13,10 @@ git fetch --all --verbose
 git clean -d -x --force
 git reset --hard origin/master
 
-cmake . -G "MSYS Makefiles" \
+sed -i "s/find_program(CCACHE_PROGRAM ccache)/###/" ./cmake/features.cmake
+sed -i "s/find_package(iconv)/###/" ./cmake/features.cmake
+
+cmake . -G "MinGW Makefiles" \
     -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_SHARED_LIBS=OFF \
     -DOSMSCOUT_BUILD_MAP=OFF \
@@ -30,6 +33,7 @@ cmake . -G "MSYS Makefiles" \
     -DOSMSCOUT_BUILD_BINDING_JAVA=OFF \
     -DOSMSCOUT_BUILD_BINDING_CSHARP=OFF \
     -DOSMSCOUT_BUILD_DOC_API=OFF \
+    -DOSMSCOUT_BUILD_WEBPAGE=OFF \
     -DOSMSCOUT_BUILD_TOOL_OSMSCOUT2=OFF \
     -DOSMSCOUT_BUILD_TOOL_STYLEEDITOR=OFF \
     -DGPERFTOOLS_USAGE=OFF \
@@ -42,7 +46,7 @@ cmake . -G "MSYS Makefiles" \
     -DOSMSCOUT_BUILD_WITH_OPENMP=OFF \
     -DOSMSCOUT_BUILD_IMPORT_TOOL_FOR_DISTRIBUTION=OFF
 
-make -j2
+mingw32-make -j2
 
 cp -v ./libosmscout/libosmscout.a ./../Library/lib/libosmscout.a
 
