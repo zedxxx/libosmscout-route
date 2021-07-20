@@ -13,7 +13,7 @@
 
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #ifndef HAVE_DLFCN_H
-#define HAVE_DLFCN_H 1
+/* #undef HAVE_DLFCN_H */
 #endif
 
 /* Define to 1 if you have the <fcntl.h> header file. */
@@ -323,22 +323,22 @@
 
 /* libprotobuf detected */
 #ifndef HAVE_LIB_PROTOBUF
-#define HAVE_LIB_PROTOBUF 1
+/* #undef HAVE_LIB_PROTOBUF */
 #endif
 
 /* libxml detected */
 #ifndef HAVE_LIB_XML
-#define HAVE_LIB_XML 1
+/* #undef HAVE_LIB_XML */
 #endif
 
 /* zlib detected */
 #ifndef HAVE_LIB_ZLIB
-#define HAVE_LIB_ZLIB 1
+/* #undef HAVE_LIB_ZLIB */
 #endif
 
 /* iconv detected */
 #ifndef HAVE_ICONV
-#define HAVE_ICONV 1
+/* #undef HAVE_ICONV */
 #endif
 #ifndef ICONV_CONST
 #define ICONV_CONST 
@@ -351,12 +351,12 @@
 
 /* freetype detected */
 #ifndef HAVE_LIB_FREETYPE
-#define HAVE_LIB_FREETYPE 1
+/* #undef HAVE_LIB_FREETYPE */
 #endif
 
 /* cairo detected */
 #ifndef HAVE_LIB_CAIRO
-#define HAVE_LIB_CAIRO 1
+/* #undef HAVE_LIB_CAIRO */
 #endif
 
 /* pango detected */
