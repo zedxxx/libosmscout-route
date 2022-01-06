@@ -61,7 +61,7 @@ cp ./../${src}/libosmscout/libosmscout.dll $target
 cp ./../${src}/libosmscout-import/libosmscout_import.dll $target
 cp ./../${src}/Import/Import.exe $target
 
-dlls=(libwinpthread-1.dll libgcc_s_seh-1.dll libstdc++-6.dll libiconv-2.dll libprotobuf.dll zlib1.dll libgomp-1.dll liblzma-5.dll libxml2-2.dll)
+dlls=(tbb.dll libwinpthread-1.dll libgcc_s_seh-1.dll libstdc++-6.dll libiconv-2.dll libprotobuf.dll zlib1.dll libgomp-1.dll liblzma-5.dll libxml2-2.dll)
 
 for dll in ${dlls[@]}; do
   cp /mingw64/bin/$dll $target
