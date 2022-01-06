@@ -49,6 +49,13 @@ DLL_EXPORT void router_clear(void* ctx);
 
 DLL_EXPORT const char* router_get_error_message(void* ctx);
 
+typedef struct {
+    uint32_t    libosmscout_db_file_version;
+    const char* libosmscout_commit_hash;
+} router_version_t;
+
+DLL_EXPORT const router_version_t* router_get_version();
+
 #ifdef __cplusplus
 }
 #endif

@@ -57,6 +57,7 @@
 		<Unit filename="src/Router.cpp" />
 		<Unit filename="src/Router.h" />
 		<Unit filename="src/RouterContext.h" />
+		<Unit filename="src/Version.h" />
 		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />
 		</Unit>

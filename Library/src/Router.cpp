@@ -9,6 +9,7 @@
 
 #include "Router.h"
 #include "RouterContext.h"
+#include "Version.h"
 
 static std::ostringstream logStream;
 static bool debugPerformance = false;
@@ -414,4 +415,14 @@ DLL_EXPORT const char* router_get_error_message(void* ctx_ptr)
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
     ctx->err = logStream.str();
     return ctx->err.c_str();
+};
+
+static const router_version_t router_version = {
+    LIBOSMSCOUT_FILE_FORMAT_VERSION,
+    LIBOSMSCOUT_COMMIT_HASH
+};
+
+DLL_EXPORT const router_version_t* router_get_version()
+{
+    return &router_version;
 };
