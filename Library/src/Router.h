@@ -24,8 +24,10 @@ enum route_profile {
 
 enum route_calc_result {
     CALC_RESULT_OK,
-    CALC_RESULT_NODATA,
-    CALC_RESULT_ERROR
+    CALC_RESULT_ERROR,
+    CALC_RESULT_NODATA_START,
+    CALC_RESULT_NODATA_TARGET,
+    CALC_RESULT_NODATA_ROUTE
 };
 
 typedef struct {

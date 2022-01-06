@@ -10,20 +10,29 @@
 #include "Router.h"
 #include "RouterContext.h"
 
+static std::ostringstream logStream;
 static bool debugPerformance = false;
 
 DLL_EXPORT void router_init()
 {
     #ifdef ROUTER_DEBUG
+    auto logger = new osmscout::ConsoleLogger();
+
     debugPerformance = true;
     osmscout::log.Debug(true);
     osmscout::log.Info(true);
     osmscout::log.Warn(true);
     osmscout::log.Error(true);
     #else
-    auto routerLogger = new osmscout::NoOpLogger();
-    osmscout::log.SetLogger(routerLogger);
+    auto logger = new osmscout::StreamLogger(logStream, logStream);
+
+    osmscout::log.Debug(false);
+    osmscout::log.Info(false);
+    osmscout::log.Warn(true);
+    osmscout::log.Error(true);
     #endif
+
+    osmscout::log.SetLogger(logger);
 }
 
 DLL_EXPORT bool router_new(void** ctx_ptr, const char* db_path)
@@ -35,13 +44,10 @@ DLL_EXPORT bool router_new(void** ctx_ptr, const char* db_path)
     ctx->routerParameter.SetDebugPerformance(debugPerformance);
 
     auto path = std::string(db_path);
-    #ifdef ROUTER_DEBUG
-    osmscout::log.Debug() << "DataBase: " << path;
-    #endif
-
     ctx->database = std::make_shared<osmscout::Database>(ctx->databaseParameter);
-    if (!ctx->database->Open(path)) {
-        ctx->err = "Can't open DataBase: " + path;
+
+    if ( !ctx->database->Open(path) ) {
+        osmscout::log.Error() << "Cannot open DB: " << path;
         return false;
     }
 
@@ -75,7 +81,7 @@ DLL_EXPORT bool router_new_multi(void** ctx_ptr, const char* db_path[], uint32_t
             std::make_shared<osmscout::Database>(ctx->databaseParameter);
 
         if ( !database->Open(path) ) {
-            ctx->err = "Can't open DataBase: " + path;
+            osmscout::log.Error() << "Cannot open DB: " << path;
             return false;
         }
 
@@ -180,7 +186,7 @@ RouterCalcMulti(RouterContext* ctx, route_profile profile,
     if (!ctx->isMultiOpened){
         ctx->isMultiOpened = router->Open(ctx->profileBuilderMulti);
         if (!ctx->isMultiOpened){
-            ctx->err = "Router open failed!";
+            osmscout::log.Error() << "Router open failed!";
             return CALC_RESULT_ERROR;
         }
     }
@@ -189,38 +195,42 @@ RouterCalcMulti(RouterContext* ctx, route_profile profile,
     osmscout::GeoCoord startCoord{p1->lat, p1->lon};
 
     #ifdef ROUTER_DEBUG
-    osmscout::log.Debug() << startCoord.GetDisplayText();
+    osmscout::log.Debug() << "Start: " << startCoord.GetDisplayText();
     #endif
 
     auto startResult = router->GetClosestRoutableNode(startCoord);
 
     if (!startResult.IsValid()) {
-        ctx->err = "Error while searching for routing node near start location!";
-        return CALC_RESULT_NODATA;
+        return CALC_RESULT_NODATA_START;
     }
 
     osmscout::RoutePosition start = startResult.GetRoutePosition();
+
+    #ifdef ROUTER_DEBUG
     if (start.GetObjectFileRef().GetType() == osmscout::refNode) {
-        ctx->err = "Can't find start node for start location!";
+        osmscout::log.Debug() << "Cannot find start node for start location!";
     }
+    #endif
 
     osmscout::GeoCoord targetCoord{p2->lat, p2->lon};
 
     #ifdef ROUTER_DEBUG
-    osmscout::log.Debug() << targetCoord.GetDisplayText();
+    osmscout::log.Debug() << "Target: " << targetCoord.GetDisplayText();
     #endif
 
     auto targetResult = router->GetClosestRoutableNode(targetCoord);
 
     if (!targetResult.IsValid()) {
-        ctx->err = "Error while searching for routing node near target location!";
-        return CALC_RESULT_NODATA;
+        return CALC_RESULT_NODATA_TARGET;
     }
 
     osmscout::RoutePosition target = targetResult.GetRoutePosition();
+
+    #ifdef ROUTER_DEBUG
     if (target.GetObjectFileRef().GetType() == osmscout::refNode) {
-        ctx->err = "Cannot find start node for target location!";
+        osmscout::log.Debug() << "Cannot find start node for target location!";
     }
+    #endif
 
     osmscout::RoutingParameter parameter;
     osmscout::RoutingResult result = router->CalculateRoute(start,
@@ -228,32 +238,27 @@ RouterCalcMulti(RouterContext* ctx, route_profile profile,
                                                             parameter);
 
     if (!result.Success()) {
-        ctx->err = "There was an error while calculating the route!";
-        ctx->isMultiOpened = false;
-        router->Close();
-        return CALC_RESULT_ERROR;
+        return CALC_RESULT_NODATA_ROUTE;
     }
 
     auto routePointsResult = router->TransformRouteDataToPoints(result.GetRoute());
 
     if (!routePointsResult.Success()) {
-        ctx->err = "Error during route conversion";
+        osmscout::log.Error() << "Error during transform route data to points!";
         return CALC_RESULT_ERROR;
     }
 
     auto points = routePointsResult.GetPoints()->points;
     ctx->pointsCount = points.size();
 
-    if (ctx->pointsCount == 0) {
-        return CALC_RESULT_NODATA;
-    }
-
-    auto p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
-    ctx->points = p;
-    for (const auto& point : points) {
-        p->lon = point.GetLon();
-        p->lat = point.GetLat();
-        ++p;
+    if (ctx->pointsCount != 0) {
+        auto p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
+        ctx->points = p;
+        for (const auto& point : points) {
+            p->lon = point.GetLon();
+            p->lat = point.GetLat();
+            ++p;
+        }
     }
 
     *out_count = ctx->pointsCount;
@@ -282,7 +287,7 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
     // open router
     if (!router->IsOpen()) {
         if (!router->Open()) {
-            ctx->err = "Router open failed!";
+            osmscout::log.Error() << "Router open failed!";
             ctx->router = nullptr;
             return CALC_RESULT_ERROR;
         }
@@ -292,7 +297,7 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
     osmscout::GeoCoord startCoord{p1->lat, p1->lon};
 
     #ifdef ROUTER_DEBUG
-    osmscout::log.Debug() << startCoord.GetDisplayText();
+    osmscout::log.Debug() << "Start: " << startCoord.GetDisplayText();
     #endif
 
     auto startResult = router->GetClosestRoutableNode(startCoord,
@@ -300,19 +305,21 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
                                                       osmscout::Kilometers(1));
 
     if (!startResult.IsValid()) {
-        ctx->err = "Error while searching for routing node near start location!";
-        return CALC_RESULT_NODATA;
+        return CALC_RESULT_NODATA_START;
     }
 
     osmscout::RoutePosition start = startResult.GetRoutePosition();
+
+    #ifdef ROUTER_DEBUG
     if (start.GetObjectFileRef().GetType() == osmscout::refNode) {
-        ctx->err = "Can't find start node for start location!";
+        osmscout::log.Debug() << "Cannot find start node for start location!";
     }
+    #endif
 
     osmscout::GeoCoord targetCoord{p2->lat, p2->lon};
 
     #ifdef ROUTER_DEBUG
-    osmscout::log.Debug() << targetCoord.GetDisplayText();
+    osmscout::log.Debug() << "Target: " << targetCoord.GetDisplayText();
     #endif
 
     auto targetResult = router->GetClosestRoutableNode(targetCoord,
@@ -320,14 +327,16 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
                                                        osmscout::Kilometers(1));
 
     if (!targetResult.IsValid()) {
-        ctx->err = "Error while searching for routing node near target location!";
-        return CALC_RESULT_NODATA;
+        return CALC_RESULT_NODATA_TARGET;
     }
 
     osmscout::RoutePosition target = targetResult.GetRoutePosition();
+
+    #ifdef ROUTER_DEBUG
     if (target.GetObjectFileRef().GetType() == osmscout::refNode) {
-        ctx->err = "Can't find start node for target location!";
+        osmscout::log.Debug() << "Cannot find start node for target location!";
     }
+    #endif
 
     osmscout::RoutingParameter parameter;
     osmscout::RoutingResult result = router->CalculateRoute(routingProfile,
@@ -336,31 +345,27 @@ RouterCalcSingle(RouterContext* ctx, route_profile profile,
                                                             parameter);
 
     if (!result.Success()) {
-        ctx->err = "There was an error while calculating the route!";
-        router->Close();
-        return CALC_RESULT_ERROR;
+        return CALC_RESULT_NODATA_ROUTE;
     }
 
     auto routePointsResult = router->TransformRouteDataToPoints(result.GetRoute());
 
     if (!routePointsResult.Success()) {
-        ctx->err = "Error during route conversion";
+        osmscout::log.Error() << "Error during transform route data to points!";
         return CALC_RESULT_ERROR;
     }
 
     auto points = routePointsResult.GetPoints()->points;
     ctx->pointsCount = points.size();
 
-    if (ctx->pointsCount == 0) {
-        return CALC_RESULT_NODATA;
-    }
-
-    auto p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
-    ctx->points = p;
-    for (const auto& point : points) {
-        p->lon = point.GetLon();
-        p->lat = point.GetLat();
-        ++p;
+    if (ctx->pointsCount != 0) {
+        auto p = (point_t*)realloc(ctx->points, ctx->pointsCount * sizeof(point_t));
+        ctx->points = p;
+        for (const auto& point : points) {
+            p->lon = point.GetLon();
+            p->lat = point.GetLat();
+            ++p;
+        }
     }
 
     *out_count = ctx->pointsCount;
@@ -381,8 +386,9 @@ router_calc(void* ctx_ptr, route_profile profile,
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
 
     ctx->err.clear();
+    logStream.str("");
 
-    if (ctx->isMulti){
+    if (ctx->isMulti) {
         return RouterCalcMulti(ctx, profile, p1, p2, out_count, out_points);
     } else {
         return RouterCalcSingle(ctx, profile, p1, p2, out_count, out_points);
@@ -406,5 +412,6 @@ DLL_EXPORT const char* router_get_error_message(void* ctx_ptr)
     }
 
     auto ctx = static_cast<RouterContext*>(ctx_ptr);
+    ctx->err = logStream.str();
     return ctx->err.c_str();
 };
