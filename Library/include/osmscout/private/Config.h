@@ -201,6 +201,11 @@
 #define HAVE_VISIBILITY 1
 #endif
 
+/* Define to 1 or 0, depending whether the compiler supports parallel execution algorithms. */
+#ifndef HAVE_STD_EXECUTION
+/* #undef HAVE_STD_EXECUTION */
+#endif
+
 /* int16_t is available */
 #ifndef OSMSCOUT_HAVE_INT16_T
 #define OSMSCOUT_HAVE_INT16_T 1

@@ -235,10 +235,16 @@ namespace osmscout {
         link
       };
 
+      struct NodeExit {
+        ObjectFileRef ref;
+        size_t node;
+        Bearing bearing;
+      };
+
     private:
 
-      bool                     inRoundabout;
-      size_t                   roundaboutCrossingCounter;
+      bool                     inRoundabout{false};
+      size_t                   roundaboutCrossingCounter{0};
       bool                     roundaboutClockwise{false};
 
     private:
@@ -248,15 +254,29 @@ namespace osmscout {
       void HandleRoundaboutEnter(const RoutePostprocessor& postprocessor, RouteDescription::Node& node);
       void HandleRoundaboutNode(RouteDescription::Node& node);
       void HandleRoundaboutLeave(RouteDescription::Node& node);
+      void HandleMiniRoundabout(const RoutePostprocessor& postprocessor,
+                                RouteDescription::Node& node,
+                                ObjectFileRef incomingPath,
+                                size_t incomingNode);
+
       void HandleDirectMotorwayEnter(RouteDescription::Node& node,
                                      const RouteDescription::NameDescriptionRef& toName);
       void HandleDirectMotorwayLeave(RouteDescription::Node& node,
                                      const RouteDescription::NameDescriptionRef& fromName);
-      bool HandleNameChange(const std::list<RouteDescription::Node>& path,
-                            std::list<RouteDescription::Node>::const_iterator& lastNode,
-                            std::list<RouteDescription::Node>::iterator& node);
-      bool HandleDirectionChange(const std::list<RouteDescription::Node>& path,
-                                 std::list<RouteDescription::Node>::iterator& node);
+      void HandleMotorwayLink(const RoutePostprocessor& postprocessor,
+                              const RouteDescription::NameDescriptionRef &originName,
+                              const std::list<RouteDescription::Node>::const_iterator &lastNode,
+                              const std::list<RouteDescription::Node>::iterator &node,
+                              const std::list<RouteDescription::Node>::const_iterator &end);
+      bool HandleNameChange(std::list<RouteDescription::Node>::const_iterator& lastNode,
+                            std::list<RouteDescription::Node>::iterator& node,
+                            const std::list<RouteDescription::Node>::const_iterator &end);
+      bool HandleDirectionChange(const RoutePostprocessor& postprocessor,
+                                 const std::list<RouteDescription::Node>::iterator& node,
+                                 const std::list<RouteDescription::Node>::const_iterator& end);
+      // just ways are supported as exits
+      std::vector<NodeExit> CollectNodeExits(const RoutePostprocessor& postprocessor,
+                                             RouteDescription::Node& node);
 
     public:
       bool Process(const RoutePostprocessor& postprocessor,
@@ -351,11 +371,13 @@ namespace osmscout {
 
     std::unordered_map<DBFileOffset,AreaRef>                      areaMap;
     std::unordered_map<DBFileOffset,WayRef>                       wayMap;
+    std::unordered_map<DBFileOffset,NodeRef>                      nodeMap;
 
     std::unordered_map<DatabaseId,NameFeatureValueReader*>        nameReaders;
     std::unordered_map<DatabaseId,RefFeatureValueReader*>         refReaders;
     std::unordered_map<DatabaseId,BridgeFeatureReader*>           bridgeReaders;
     std::unordered_map<DatabaseId,RoundaboutFeatureReader*>       roundaboutReaders;
+    std::unordered_map<DatabaseId,ClockwiseDirectionFeatureReader*> clockwiseDirectionReaders;
     std::unordered_map<DatabaseId,DestinationFeatureValueReader*> destinationReaders;
     std::unordered_map<DatabaseId,MaxSpeedFeatureValueReader*>    maxSpeedReaders;
     std::unordered_map<DatabaseId,LanesFeatureValueReader*>       lanesReaders;
@@ -364,16 +386,18 @@ namespace osmscout {
     std::unordered_map<DatabaseId,TypeInfoSet>                    motorwayTypes;
     std::unordered_map<DatabaseId,TypeInfoSet>                    motorwayLinkTypes;
     std::unordered_map<DatabaseId,TypeInfoSet>                    junctionTypes;
+    std::unordered_map<DatabaseId,TypeInfoRef>                    miniRoundaboutTypes;
 
   private:
-    bool ResolveAllAreasAndWays(const RouteDescription& description,
-                                DatabaseId dbId,
-                                Database& database);
+    bool ResolveAllPathObjects(const RouteDescription& description,
+                               DatabaseId dbId,
+                               Database& database);
     void Cleanup();
 
   private:
     AreaRef GetArea(const DBFileOffset &offset) const;
     WayRef GetWay(const DBFileOffset &offset) const;
+    NodeRef GetNode(const DBFileOffset &offset) const;
 
     Duration GetTime(DatabaseId dbId,const Area& area,const Distance &deltaDistance) const;
     Duration GetTime(DatabaseId dbId,const Way& way,const Distance &deltaDistance) const;
@@ -388,14 +412,10 @@ namespace osmscout {
     RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
                                                             const Way& way) const;
 
-    bool LoadJunction(DatabaseId database,
-                      GeoCoord coord,
-                      std::string junctionRef,
-                      std::string junctionName) const;
-
     bool IsMotorwayLink(const RouteDescription::Node& node) const;
     bool IsMotorway(const RouteDescription::Node& node) const;
 
+    bool IsMiniRoundabout(const RouteDescription::Node& node) const;
     bool IsRoundabout(const RouteDescription::Node& node) const;
     bool IsBridge(const RouteDescription::Node& node) const;
 
@@ -437,7 +457,7 @@ namespace osmscout {
      * TODO:
      * All Postprocessors are allowed to use our internal methods currently.
      * We should fix this by moving helper methods to a separate
-     * PostprocessorContext object that gets passed to the postprocessors explicitely.
+     * PostprocessorContext object that gets passed to the postprocessors explicitly.
      * This would also move state out of the RoutePostprocessor itself.
      */
     friend Postprocessor;
@@ -448,7 +468,8 @@ namespace osmscout {
                                      const std::list<PostprocessorRef>& processors,
                                      const std::set<std::string>& motorwayTypeNames=std::set<std::string>(),
                                      const std::set<std::string>& motorwayLinkTypeNames=std::set<std::string>(),
-                                     const std::set<std::string>& junctionTypeNames=std::set<std::string>());
+                                     const std::set<std::string>& junctionTypeNames=std::set<std::string>(),
+                                     const std::string& miniRoundaboutTypeName="highway_mini_roundabout");
   };
 }
 
