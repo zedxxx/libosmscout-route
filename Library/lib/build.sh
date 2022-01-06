@@ -8,10 +8,12 @@ if [ ! -d "${src}/" ]; then
     git clone https://github.com/framstag/libosmscout "${src}"
 fi
 
+commit=$(sed -nr 's/.*LIBOSMSCOUT_COMMIT_HASH\s*=\s*\"([a-fA-F0-9]+)\".*/\1/p' ./Library/src/Version.h)
+
 cd "${src}/"
 git fetch --all --verbose
 git clean -d -x --force
-git reset --hard origin/master
+git reset --hard $commit
 
 sed -i "s/find_program(CCACHE_PROGRAM ccache)/###/" ./cmake/features.cmake
 sed -i "s/find_package(iconv)/###/" ./cmake/features.cmake

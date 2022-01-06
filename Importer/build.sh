@@ -8,10 +8,12 @@ if [ ! -d "${src}/" ] ; then
     git clone https://github.com/framstag/libosmscout "${src}"
 fi
 
+commit=$(sed -nr 's/.*LIBOSMSCOUT_COMMIT_HASH\s*=\s*\"([a-fA-F0-9]+)\".*/\1/p' ./Library/src/Version.h)
+
 cd "${src}/"
 git fetch --all --verbose
 git clean -d -x --force
-git reset --hard origin/master    
+git reset --hard $commit
 
 cmake . -G 'MSYS Makefiles' \
     -DBUILD_SHARED_LIBS=ON \
