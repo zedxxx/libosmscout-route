@@ -404,19 +404,19 @@ TYPES
         de: "Fußweg"
 
   TYPE highway_via_ferrata_easy IGNORE // not-a-route
-    = WAY (("highway"=="via_ferrata") AND (("via_ferrata_scale"=="0") OR ("via_ferrata_scale"=="1")))
+    = WAY (("highway"=="via_ferrata") AND (("via_ferrata_scale"=="0") OR ("via_ferrata_scale"=="0+") OR ("via_ferrata_scale"=="1-") OR ("via_ferrata_scale"=="1") OR ("via_ferrata_scale"=="1+")))
       {Name, NameAlt}
 
   TYPE highway_via_ferrata_moderate IGNORE // not-a-route
-    = WAY (("highway"=="via_ferrata") AND ("via_ferrata_scale"=="2"))
+    = WAY (("highway"=="via_ferrata") AND (("via_ferrata_scale"=="2-") OR ("via_ferrata_scale"=="2") OR ("via_ferrata_scale"=="2+")))
       {Name, NameAlt}
 
   TYPE highway_via_ferrata_difficult IGNORE // not-a-route
-    = WAY (("highway"=="via_ferrata") AND (("via_ferrata_scale"=="3") OR ("via_ferrata_scale"=="4")))
+    = WAY (("highway"=="via_ferrata") AND (("via_ferrata_scale"=="3-") OR ("via_ferrata_scale"=="3") OR ("via_ferrata_scale"=="3+") OR ("via_ferrata_scale"=="4-") OR ("via_ferrata_scale"=="4") OR ("via_ferrata_scale"=="4+")))
       {Name, NameAlt}
 
   TYPE highway_via_ferrata_extreme IGNORE // not-a-route
-    = WAY (("highway"=="via_ferrata") AND (("via_ferrata_scale"=="5") OR ("via_ferrata_scale"=="6")))
+    = WAY (("highway"=="via_ferrata") AND (("via_ferrata_scale"=="5-") OR ("via_ferrata_scale"=="5") OR ("via_ferrata_scale"=="5+") OR ("via_ferrata_scale"=="6-") OR ("via_ferrata_scale"=="6") OR ("via_ferrata_scale"=="6+")))
       {Name, NameAlt}
 
   TYPE highway_bridleway
@@ -442,7 +442,7 @@ TYPES
 
   TYPE highway_mini_roundabout IGNORE // not-a-route
     = NODE ("highway"=="mini_roundabout")
-      {Name, NameAlt}
+      {Name, NameAlt, ClockwiseDirection}
 
   TYPE highway_bus_stop IGNORE // not-a-route
     = NODE ("highway"=="bus_stop" OR (!("bus" IN ["no", "false", "0"]) AND ("public_transport" IN ["platform", "stop_position"])))
@@ -2384,7 +2384,7 @@ TYPES
       ROUTE
 
   TYPE route_hiking
-    = RELATION ("type"=="route" AND "route"=="hiking")
+    = RELATION ("type"=="route" AND ("route"=="hiking" OR "route"=="foot"))
       {Name, Ref, Operator, Network, Color}
       ROUTE
 
