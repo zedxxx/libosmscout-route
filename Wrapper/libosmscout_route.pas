@@ -25,14 +25,22 @@ type
 
   TRouteCalcResult  = (
     CALC_RESULT_OK,
-    CALC_RESULT_NODATA,
-    CALC_RESULT_ERROR
+    CALC_RESULT_ERROR,
+    CALC_RESULT_NODATA_START,
+    CALC_RESULT_NODATA_TARGET,
+    CALC_RESULT_NODATA_ROUTE
   );
 
   point_t = packed record
     lon, lat: double;
   end;
   ppoint_t = ^point_t;
+
+  router_version_t = record
+    libosmscout_db_file_version: uint32_t;
+    libosmscout_commit_hash: PAnsiChar;
+  end;
+  prouter_version_t = ^router_version_t;
 
 var
   router: packed record
@@ -49,13 +57,15 @@ var
 
     clear: procedure(ctx: pointer); cdecl;
     get_error_message: function(ctx: pointer): PAnsiChar; cdecl;
+
+    get_version: function(): prouter_version_t; cdecl;
   end;
 
 type
-  ELibOsmScoutRouteError = Exception;
+  ELibOsmScoutRouteError = class(Exception);
 
 procedure LibOsmScoutRouteInitialize(const dllname: string = libosmscout_route_dll);
-function IsLibOsmScoutRouteAvailable: Boolean;
+function IsLibOsmScoutRouteAvailable(const dllname: string = libosmscout_route_dll): Boolean;
 
 procedure RiseLibOsmScoutError(const ACtx: Pointer; const AFuncName: string);
 
@@ -69,11 +79,20 @@ var
   GLock: TCriticalSection = nil;
   GInitialized: Boolean = False;
 
-function IsLibOsmScoutRouteAvailable: Boolean;
+function GetFullLibName(const dllname: string): string; inline;
+begin
+  Result := ExtractFilePath(ParamStr(0)) + dllname;
+end;
+
+function IsLibOsmScoutRouteAvailable(const dllname: string): Boolean;
 begin
   try
+    if not FileExists(GetFullLibName(dllname)) then begin
+      Result := False;
+      Exit;
+    end;
     if not GInitialized then begin
-      LibOsmScoutRouteInitialize;
+      LibOsmScoutRouteInitialize(dllname);
     end;
     Result := router.Handle > 0;
   except
@@ -83,8 +102,8 @@ end;
 
 procedure LibOsmScoutRouteInitialize(const dllname: string);
 const
-  CFuncNames: array[0..6] of string = (
-    'init', 'new', 'new_multi', 'del', 'calc', 'clear', 'get_error_message'
+  CFuncNames: array[0..7] of string = (
+    'init', 'new', 'new_multi', 'del', 'calc', 'clear', 'get_error_message', 'get_version'
   );
 var
   I: Integer;
@@ -97,8 +116,7 @@ begin
     if not GInitialized then
     try
       GInitialized := True;
-
-      VHandle := SafeLoadLibrary(ExtractFilePath(ParamStr(0)) + dllname);
+      VHandle := SafeLoadLibrary(GetFullLibName(dllname));
       if VHandle = 0 then begin
         VHandle := SafeLoadLibrary(dllname);
       end;
@@ -119,7 +137,7 @@ begin
 
       router.Handle := VHandle;
       router.init;
-      
+
     except
       on E: Exception do begin
         if VHandle <> 0 then begin
@@ -136,19 +154,23 @@ end;
 
 procedure RiseLibOsmScoutError(const ACtx: Pointer; const AFuncName: string);
 var
-  VErr: PAnsiChar;
-  VErrStr: string;
+  VErr: AnsiString;
+  VMsg: string;
 begin
-  VErrStr := 'Unknown error';
+  VErr := '';
   if ACtx <> nil then begin
     VErr := router.get_error_message(ACtx);
-    if VErr <> '' then begin
-      VErrStr := string(AnsiString(VErr));
-    end;
   end;
-  raise ELibOsmScoutRouteError.Create(
-    '"router_' + AFuncName + '" failed with error: ' + VErrStr
-  );
+  if VErr = '' then begin
+    VMsg := Format(
+      'Function "router_%s" failed with no error message!', [AFuncName]
+    );
+  end else begin
+    VMsg := Format(
+      'Function "router_%s" failed with error: ' + #13#10 + '%s', [AFuncName, VErr]
+    );
+  end;
+  raise ELibOsmScoutRouteError.Create(VMsg);
 end;
 
 initialization

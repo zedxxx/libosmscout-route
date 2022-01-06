@@ -10,10 +10,13 @@ uses
   libosmscout_route;
 
 procedure PrintRoute(
+  const AProfile: TRouteProfile;
   const AStartPoint: point_t;
   const ATargetPoint: point_t;
   const ADatabases: array of AnsiString
 );
+
+procedure PrintLibOsmScoutVersion;
 
 implementation
 
@@ -33,6 +36,14 @@ begin
   );
 end;
 
+procedure PrintError(const ACtx: Pointer; const AMsg: string = '');
+var
+  VErr: AnsiString;
+begin
+  VErr := router.get_error_message(ACtx);
+  Writeln(VErr, AMsg);
+end;
+
 {$IFNDEF FPC}
   {$IF CompilerVersion >= 33}
     {$DEFINE USE_NEW_EXCEPTION_MASK}
@@ -40,6 +51,7 @@ end;
 {$ENDIF}
 
 procedure PrintRoute(
+  const AProfile: TRouteProfile;
   const AStartPoint: point_t;
   const ATargetPoint: point_t;
   const ADataBases: array of AnsiString
@@ -55,7 +67,7 @@ var
   {$ELSE}
   VExceptionMask: TFPUExceptionMask;
   {$ENDIF}
-  VDataBasesArr: array of PAnsiChar {$IFDEF FPC} = nil {$ENDIF};
+  VDataBasesArr: array of PAnsiChar;
 begin
   LibOsmScoutRouteInitialize;
 
@@ -84,22 +96,34 @@ begin
       end;
     end;
 
-    VCalcResult := router.calc(VCtx, ROUTE_PROFILE_BIKE, @AStartPoint,
+    VCalcResult := router.calc(VCtx, AProfile, @AStartPoint,
       @ATargetPoint, VCount, VPoints);
 
     case VCalcResult of
 
       CALC_RESULT_OK: begin
-        for I := 0 to VCount - 1 do begin
-          PrintPoint(VPoints);
-          Inc(VPoints);
+        if VCount = 0 then begin
+          PrintError(VCtx, 'There is no points in route!');
+        end else begin
+          for I := 0 to VCount - 1 do begin
+            PrintPoint(VPoints);
+            Inc(VPoints);
+          end;
         end;
 
         router.clear(VCtx);
       end;
 
-      CALC_RESULT_NODATA: begin
-        Writeln('There is no data in database for this location');
+      CALC_RESULT_NODATA_START: begin
+        PrintError(VCtx, 'There is no data in database for start location!');
+      end;
+
+      CALC_RESULT_NODATA_TARGET: begin
+        PrintError(VCtx, 'There is no data in database for target location!');
+      end;
+
+      CALC_RESULT_NODATA_ROUTE: begin
+        PrintError(VCtx, 'The route cannot be built for the given profile. Not enough data in the database!');
       end;
 
       CALC_RESULT_ERROR: begin
@@ -107,13 +131,26 @@ begin
       end;
     else
       raise Exception.CreateFmt(
-        'Unexpected result value: %d', [Integer(VCalcResult)]
+        '"router_calc" returns unexpected result: %d', [Integer(VCalcResult)]
       );
     end;
   finally
     Math.SetExceptionMask(VExceptionMask);
     router.del(VCtx);
   end;
+end;
+
+procedure PrintLibOsmScoutVersion;
+var
+  VInfo: prouter_version_t;
+begin
+  LibOsmScoutRouteInitialize;
+
+  VInfo := router.get_version;
+  Writeln(
+    'Built with libosmscout-', VInfo.libosmscout_commit_hash,
+    ' (DB file format version: ', VInfo.libosmscout_db_file_version, ')'
+  );
 end;
 
 end.
