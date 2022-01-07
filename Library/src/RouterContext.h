@@ -5,7 +5,12 @@
 #include <osmscout/routing/SimpleRoutingService.h>
 #include <osmscout/routing/MultiDBRoutingService.h>
 
+#include "Router.h"
+#include "RouterOptions.h"
+
 struct RouterContext {
+    const RouterOptions* opt = nullptr;
+
     osmscout::DatabaseParameter databaseParameter{};
     osmscout::DatabaseRef database = nullptr;
 
@@ -38,51 +43,6 @@ struct RouterContext {
 
     void Clear();
 };
-
-RouterContext::~RouterContext()
-{
-    Clear();
-
-    router = nullptr;
-    routerMulti = nullptr;
-
-    database = nullptr;
-
-    for (auto &db: databases) {
-        db->Close();
-        db.reset();
-    }
-}
-
-void RouterContext::Clear()
-{
-    if (points) {
-        free(points);
-        points = nullptr;
-    }
-    pointsCount = 0;
-
-    if (router && router->IsOpen()) {
-        router->Close();
-    }
-    if (database) {
-        database->FlushCache();
-    }
-
-    if (routerMulti && isMultiOpened) {
-        isMultiOpened = false;
-        routerMulti->Close();
-    }
-    for (auto &db: databases) {
-        db->FlushCache();
-    }
-
-    err.clear();
-
-    prevProfile = ROUTE_PROFILE_UNDEF;
-    routingProfileSingle = nullptr;
-    profileBuilderMulti = nullptr;
-}
 
 #endif
 

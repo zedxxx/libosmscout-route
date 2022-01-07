@@ -56,7 +56,16 @@
 		</Linker>
 		<Unit filename="src/Router.cpp" />
 		<Unit filename="src/Router.h" />
+		<Unit filename="src/RouterContext.cpp" />
 		<Unit filename="src/RouterContext.h" />
+		<Unit filename="src/RouterMulti.cpp" />
+		<Unit filename="src/RouterMulti.h" />
+		<Unit filename="src/RouterOptions.cpp" />
+		<Unit filename="src/RouterOptions.h" />
+		<Unit filename="src/RouterSingle.cpp" />
+		<Unit filename="src/RouterSingle.h" />
+		<Unit filename="src/RoutingProfileBuilder.cpp" />
+		<Unit filename="src/RoutingProfileBuilder.h" />
 		<Unit filename="src/Version.h" />
 		<Unit filename="src/main.c">
 			<Option compilerVar="CC" />

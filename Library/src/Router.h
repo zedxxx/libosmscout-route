@@ -15,20 +15,20 @@ extern "C"
 {
 #endif
 
-enum route_profile {
+typedef enum {
     ROUTE_PROFILE_CAR,
     ROUTE_PROFILE_BIKE,
     ROUTE_PROFILE_FOOT,
     ROUTE_PROFILE_UNDEF
-};
+} route_profile;
 
-enum route_calc_result {
-    CALC_RESULT_OK,
-    CALC_RESULT_ERROR,
-    CALC_RESULT_NODATA_START,
-    CALC_RESULT_NODATA_TARGET,
-    CALC_RESULT_NODATA_ROUTE
-};
+typedef enum {
+    ROUTER_RESULT_OK            = 0,
+    ROUTER_RESULT_ERROR         = 1,
+    ROUTER_RESULT_NODATA_START  = 100,
+    ROUTER_RESULT_NODATA_TARGET = 101,
+    ROUTER_RESULT_NODATA_ROUTE  = 102
+} router_result;
 
 typedef struct {
     double lon;
@@ -37,13 +37,23 @@ typedef struct {
 
 DLL_EXPORT void router_init();
 
-DLL_EXPORT bool router_new(void** ctx, const char* db_path);
-DLL_EXPORT bool router_new_multi(void** ctx_ptr, const char* db_path[], uint32_t db_count);
+// options
+DLL_EXPORT router_result router_opt_new(void** opt);
+DLL_EXPORT void router_opt_del(void* opt);
+
+DLL_EXPORT router_result
+router_opt_set_dbpath(void* opt, const char* db_path[], uint32_t db_count);
+
+DLL_EXPORT router_result
+router_opt_set_rnode_radius(void* opt, uint32_t radius);
+
+// routing
+DLL_EXPORT router_result router_new(void** ctx, const void* opt);
 DLL_EXPORT void router_del(void* ctx);
 
-DLL_EXPORT route_calc_result router_calc(void* ctx, route_profile profile,
-                                         const point_t* p1, const point_t* p2,
-                                         uint32_t* out_count, const point_t** out_points);
+DLL_EXPORT router_result router_calc(void* ctx, route_profile profile,
+                                     const point_t* p1, const point_t* p2,
+                                     uint32_t* out_count, const point_t** out_points);
 
 DLL_EXPORT void router_clear(void* ctx);
 

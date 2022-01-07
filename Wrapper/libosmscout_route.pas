@@ -23,15 +23,15 @@ type
     ROUTE_PROFILE_UNDEF
   );
 
-  TRouteCalcResult  = (
-    CALC_RESULT_OK,
-    CALC_RESULT_ERROR,
-    CALC_RESULT_NODATA_START,
-    CALC_RESULT_NODATA_TARGET,
-    CALC_RESULT_NODATA_ROUTE
+  TRouterResult  = (
+    ROUTER_RESULT_OK            = 0,
+    ROUTER_RESULT_ERROR         = 1,
+    ROUTER_RESULT_NODATA_START  = 100,
+    ROUTER_RESULT_NODATA_TARGET = 101,
+    ROUTER_RESULT_NODATA_ROUTE  = 102
   );
 
-  point_t = packed record
+  point_t = record
     lon, lat: double;
   end;
   ppoint_t = ^point_t;
@@ -48,17 +48,22 @@ var
 
     init: procedure(); cdecl;
 
-    new: function(out ctx: pointer; const db_path: PAnsiChar): boolean; cdecl;
-    new_multi: function(out ctx: pointer; const db_path: PAnsiChar; db_count: uint32_t): boolean; cdecl;
+    new: function(out ctx: pointer; const opt: pointer): TRouterResult; cdecl;
     del: procedure(ctx: pointer); cdecl;
 
     calc: function(ctx: pointer; profile: TRouteProfile; const p1, p2: ppoint_t;
-            out out_count: uint32_t; out out_points: ppoint_t): TRouteCalcResult; cdecl;
+            out out_count: uint32_t; out out_points: ppoint_t): TRouterResult; cdecl;
 
     clear: procedure(ctx: pointer); cdecl;
     get_error_message: function(ctx: pointer): PAnsiChar; cdecl;
 
     get_version: function(): prouter_version_t; cdecl;
+
+    // options
+    opt_new: function(out opt: pointer): TRouterResult; cdecl;
+    opt_del: procedure(opt: pointer); cdecl;
+    opt_set_dbpath: function(opt: pointer; const db_path: PAnsiChar; db_count: uint32_t): TRouterResult; cdecl;
+    opt_set_rnode_radius: function(opt: pointer; radius: uint32_t): TRouterResult; cdecl;
   end;
 
 type
@@ -102,8 +107,9 @@ end;
 
 procedure LibOsmScoutRouteInitialize(const dllname: string);
 const
-  CFuncNames: array[0..7] of string = (
-    'init', 'new', 'new_multi', 'del', 'calc', 'clear', 'get_error_message', 'get_version'
+  CFuncNames: array[0..10] of string = (
+    'init', 'new', 'del', 'calc', 'clear', 'get_error_message', 'get_version',
+    'opt_new', 'opt_del', 'opt_set_dbpath', 'opt_set_rnode_radius'
   );
 var
   I: Integer;

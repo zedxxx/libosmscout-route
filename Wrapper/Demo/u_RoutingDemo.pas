@@ -58,10 +58,11 @@ procedure PrintRoute(
 );
 var
   I: Integer;
+  VOpt: Pointer;
   VCtx: Pointer;
   VCount: uint32_t;
   VPoints: ppoint_t;
-  VCalcResult: TRouteCalcResult;
+  VResult: TRouterResult;
   {$IFDEF USE_NEW_EXCEPTION_MASK}
   VExceptionMask: TArithmeticExceptionMask;
   {$ELSE}
@@ -75,6 +76,7 @@ begin
     [exInvalidOp, exDenormalized, exUnderflow, exPrecision]
   );
 
+  VOpt := nil;
   VCtx := nil;
   try
     VCount := Length(ADataBases);
@@ -82,26 +84,36 @@ begin
       raise Exception.Create('Expected at least one DataBase path!');
     end;
 
-    if VCount = 1 then begin
-      if not router.new(VCtx, PAnsiChar(ADataBases[0])) then begin
-        RiseLibOsmScoutError(VCtx, 'new');
-      end;
-    end else begin
-      SetLength(VDataBasesArr, VCount);
-      for I := 0 to VCount - 1 do begin
-        VDataBasesArr[I] := PAnsiChar(ADataBases[I]);
-      end;
-      if not router.new_multi(VCtx, @VDataBasesArr[0], VCount) then begin
-        RiseLibOsmScoutError(VCtx, 'new_multi');
-      end;
+    VResult := router.opt_new(VOpt);
+    if VResult <> ROUTER_RESULT_OK then begin
+      RiseLibOsmScoutError(nil, 'opt_new');
     end;
 
-    VCalcResult := router.calc(VCtx, AProfile, @AStartPoint,
-      @ATargetPoint, VCount, VPoints);
+    SetLength(VDataBasesArr, VCount);
+    for I := 0 to VCount - 1 do begin
+      VDataBasesArr[I] := PAnsiChar(ADataBases[I]);
+    end;
 
-    case VCalcResult of
+    VResult := router.opt_set_dbpath(VOpt, @VDataBasesArr[0], VCount);
+    if VResult <> ROUTER_RESULT_OK then begin
+      RiseLibOsmScoutError(nil, 'opt_set_dbpath');
+    end;
 
-      CALC_RESULT_OK: begin
+    // Closest Routable Node Radius in meters (default = 1000)
+    VResult := router.opt_set_rnode_radius(VOpt, 1000);
+    if VResult <> ROUTER_RESULT_OK then begin
+      RiseLibOsmScoutError(nil, 'set_rnode_radius');
+    end;
+
+    VResult := router.new(VCtx, VOpt);
+    if VResult <> ROUTER_RESULT_OK then begin
+      RiseLibOsmScoutError(VCtx, 'new');
+    end;
+
+    VResult := router.calc(VCtx, AProfile, @AStartPoint, @ATargetPoint, VCount, VPoints);
+    case VResult of
+
+      ROUTER_RESULT_OK: begin
         if VCount = 0 then begin
           PrintError(VCtx, 'There is no points in route!');
         end else begin
@@ -114,29 +126,30 @@ begin
         router.clear(VCtx);
       end;
 
-      CALC_RESULT_NODATA_START: begin
+      ROUTER_RESULT_NODATA_START: begin
         PrintError(VCtx, 'There is no data in database for start location!');
       end;
 
-      CALC_RESULT_NODATA_TARGET: begin
+      ROUTER_RESULT_NODATA_TARGET: begin
         PrintError(VCtx, 'There is no data in database for target location!');
       end;
 
-      CALC_RESULT_NODATA_ROUTE: begin
+      ROUTER_RESULT_NODATA_ROUTE: begin
         PrintError(VCtx, 'The route cannot be built for the given profile. Not enough data in the database!');
       end;
 
-      CALC_RESULT_ERROR: begin
+      ROUTER_RESULT_ERROR: begin
         RiseLibOsmScoutError(VCtx, 'calc');
       end;
     else
       raise Exception.CreateFmt(
-        '"router_calc" returns unexpected result: %d', [Integer(VCalcResult)]
+        '"router_calc" returns unexpected result: %d', [Integer(VResult)]
       );
     end;
   finally
     Math.SetExceptionMask(VExceptionMask);
     router.del(VCtx);
+    router.opt_del(VOpt);
   end;
 end;
 
