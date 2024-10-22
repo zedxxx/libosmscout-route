@@ -66,7 +66,7 @@ def make_route_ost(ost, route):
         type_in = False
         t = []
 
-        for line in open(ost):
+        for line in io.open(ost, 'r', encoding='utf-8'):
 
             if types == TYPES_NOT_FOUND and line.startswith('TYPES'):
                 types = TYPES_FOUND
@@ -77,7 +77,7 @@ def make_route_ost(ost, route):
                 if line.startswith('  TYPE '):
                     if type_in:
                         s = process_type(t)
-                        f.write(s.decode('utf-8'))
+                        f.write(s)
                     type_in = True
                     del t[:]
                 elif type_in and line.startswith(('\n', 'END')):
@@ -85,13 +85,13 @@ def make_route_ost(ost, route):
                     line = process_type(t) + line
             elif type_in:
                 s = process_type(t)
-                f.write(s.decode('utf-8'))
+                f.write(s)
                 type_in = False
 
             if type_in:
                 t.append(line)
             else:
-                f.write(line.decode('utf-8'))
+                f.write(line)
 
 
 if __name__ == '__main__':
