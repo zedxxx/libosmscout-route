@@ -48,7 +48,7 @@ cmake . -G "MinGW Makefiles" \
     -DOSMSCOUT_BUILD_WITH_OPENMP=OFF \
     -DOSMSCOUT_BUILD_IMPORT_TOOL_FOR_DISTRIBUTION=OFF
 
-mingw32-make -j2
+mingw32-make -j4
 
 cp -v ./libosmscout/libosmscout.a ./../Library/lib/libosmscout.a
 

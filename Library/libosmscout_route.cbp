@@ -28,7 +28,7 @@
 				<Option output="bin/Release/libosmscout_route" prefix_auto="1" extension_auto="1" />
 				<Option object_output="obj/Release/" />
 				<Option type="3" />
-				<Option compiler="gcc" />
+				<Option compiler="gcc-msys2-mingw32" />
 				<Option createDefFile="1" />
 				<Option createStaticLib="1" />
 				<Compiler>
