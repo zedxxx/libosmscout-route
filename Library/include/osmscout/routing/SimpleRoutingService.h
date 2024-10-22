@@ -28,7 +28,7 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <osmscout/CoreFeatures.h>
+#include <osmscout/lib/CoreFeatures.h>
 
 #include <osmscout/Point.h>
 
@@ -37,9 +37,10 @@
 #include <osmscout/routing/RouteNode.h>
 
 // Datafiles
-#include <osmscout/DataFile.h>
-#include <osmscout/Database.h>
-#include <osmscout/ObjectVariantDataFile.h>
+#include <osmscout/io/DataFile.h>
+
+#include <osmscout/db/Database.h>
+#include <osmscout/db/ObjectVariantDataFile.h>
 
 // Routing
 #include <osmscout/Intersection.h>
@@ -50,7 +51,7 @@
 #include <osmscout/routing/RoutingService.h>
 #include <osmscout/routing/AbstractRoutingService.h>
 
-#include <osmscout/util/Breaker.h>
+#include <osmscout/async/Breaker.h>
 #include <osmscout/util/Cache.h>
 
 #include <osmscout/system/Compiler.h>
@@ -107,7 +108,7 @@ namespace osmscout {
    * - Transformation of the resulting route to a simple list of points
    * - Transformation of the resulting route to a routing description with is the base
    * for further transformations to a textual or visual description of the route
-   * - Returning the closest routeable node to  given geolocation
+   * - Returning the closest route-able node to given geolocation
    */
   class OSMSCOUT_API SimpleRoutingService: public AbstractRoutingService<RoutingProfile>
   {
@@ -151,6 +152,8 @@ namespace osmscout {
                     DatabaseId database,
                     const WayRef &way,
                     const Distance &wayLength) override;
+
+    double GetUTurnCost(const RoutingProfile& profile, const DatabaseId databaseId) override;
 
     double GetEstimateCosts(const RoutingProfile& profile,
                             DatabaseId database,
@@ -205,6 +208,41 @@ namespace osmscout {
                                           const Distance &radius,
                                           const RoutingParameter& parameter);
 
+    /**
+     * Return routable node on specific object, when this object is routable
+     * and usable by provided profile.
+     *
+     * @param objRef
+     * @param profile
+     *      Routing profile to use. It defines Vehicle to use and allowed objects.
+     * @return routable node on object (way)
+     */
+    RoutePositionResult GetRoutableNode(const ObjectFileRef& objRef,
+                                        const RoutingProfile& profile) const;
+
+    /**
+     * Returns the closest routable object (area or way) relative
+     * to the given coordinate.
+     *
+     * The result should be use as input for the router to define
+     * routing start or end point.
+     *
+     * @note The returned node may in fact not be routable, it is just
+     * the closest node to the given position on a routable way or area.
+     *
+     * @note The actual object may not be within the given radius
+     * due to internal search index resolution.
+     *
+     * @param coord
+     *    coordinate of the search center
+     * @param profile
+     *    Routing profile to use. It defines Vehicle to use and allowed objects.
+     * @param radius
+     *    The maximum radius to search in from the search center
+     * @return
+     *    A reference to a node on a way or area that is routable (if returned
+     *    route position is valid)
+     */
     RoutePositionResult GetClosestRoutableNode(const GeoCoord& coord,
                                                const RoutingProfile& profile,
                                                const Distance &radius) const;
@@ -224,7 +262,7 @@ namespace osmscout {
 
   /**
    * \defgroup Routing Routing based data structures and services
-   * Classes and methods for handling routing aspects of object in the libosmscout database
+   * Classes and methods for handling routing aspects of object in the libosmscout db
    */
 }
 

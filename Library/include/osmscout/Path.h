@@ -20,7 +20,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
-#include <osmscout/CoreImportExport.h>
+#include <osmscout/lib/CoreImportExport.h>
 
 #include <osmscout/OSMScoutTypes.h>
 
@@ -48,17 +48,17 @@ namespace osmscout {
          bool traversable);
     Path(const Path& other);
 
-    inline ObjectFileRef GetObject() const
+    ObjectFileRef GetObject() const
     {
       return object;
     }
 
-    inline size_t GetTargetNodeIndex() const
+    size_t GetTargetNodeIndex() const
     {
       return targetNodeIndex;
     }
 
-    inline bool IsTraversable() const
+    bool IsTraversable() const
     {
       return traversable;
     }

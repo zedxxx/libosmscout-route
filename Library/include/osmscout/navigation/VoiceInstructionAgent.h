@@ -23,7 +23,7 @@
 #include <osmscout/navigation/Engine.h>
 #include <osmscout/navigation/Agents.h>
 #include <osmscout/navigation/DataAgent.h>
-#include "PositionAgent.h"
+#include <osmscout/navigation/PositionAgent.h>
 
 namespace osmscout {
 
@@ -118,8 +118,8 @@ class OSMSCOUT_API VoiceInstructionAgent CLASS_FINAL : public NavigationAgent
 {
 public:
 
-  enum class MessageType {
-    NoMessage,
+  enum class MessageType: int {
+    NoMessage = 0,
 
     LeaveRbExit1,
     LeaveRbExit2,
@@ -138,7 +138,9 @@ public:
 
     LeaveMotorway,
     LeaveMotorwayRight,
-    LeaveMotorwayLeft
+    LeaveMotorwayLeft,
+
+    Silent
   };
 
   struct MessageStruct {
@@ -157,7 +159,7 @@ public:
     MessageStruct &operator=(const MessageStruct&) = default;
     MessageStruct &operator=(MessageStruct&&) = default;
 
-    operator bool() const
+    explicit operator bool() const
     {
       return type != MessageType::NoMessage;
     }
@@ -175,6 +177,7 @@ public:
 
 private:
   DistanceUnitSystem units{DistanceUnitSystem::Metrics};
+  Vehicle vehicle{vehicleCar};
 
   // state used for triggering GpsFound / GpsLost messages
   bool prevGpsSignal{true};
@@ -184,7 +187,7 @@ private:
   Distance lastMessagePosition; // where we trigger last message (it is before lastMessage.disntace usually)
 
 public:
-  inline VoiceInstructionAgent(DistanceUnitSystem units):
+  explicit VoiceInstructionAgent(DistanceUnitSystem units):
     units{units}
   {};
 
@@ -194,7 +197,8 @@ public:
 
 private:
   void toSamples(std::vector<VoiceInstructionMessage::VoiceSample> &samples,
-                 const MessageType &messageType);
+                 const MessageType &messageType,
+                 bool shortRoundaboutMessage);
 
   std::vector<VoiceInstructionMessage::VoiceSample> toSamples(const Distance &distanceFromStart,
                                                               const MessageStruct &message,

@@ -20,7 +20,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
-#include <osmscout/CoreImportExport.h>
+#include <osmscout/lib/CoreImportExport.h>
 
 #include <osmscout/system/SystemTypes.h>
 #include <osmscout/system/Math.h>
@@ -29,6 +29,7 @@
 
 #include <osmscout/system/Compiler.h>
 
+#include <ostream>
 #include <string>
 #include <array>
 #include <type_traits>
@@ -103,6 +104,8 @@ namespace osmscout {
     std::array<double,2> coords;
 
   public:
+    static const Vertex2D ZERO;
+
     /**
      * The default constructor creates an uninitialized instance (for performance reasons).
      */
@@ -120,23 +123,6 @@ namespace osmscout {
 
     Vertex2D& operator=(const Vertex2D& other) = default;
     Vertex2D& operator=(Vertex2D&& other) = default;
-
-    void SetX(double x)
-    {
-      coords[0]=x;
-    }
-
-    void SetY(double y)
-    {
-      coords[1]=y;
-    }
-
-    void Set(double x,
-             double y)
-    {
-      coords[0]=x;
-      coords[1]=y;
-    }
 
     double GetX() const
     {
@@ -166,9 +152,15 @@ namespace osmscout {
     }
   };
 
+  OSMSCOUT_API Vertex2D operator-(const Vertex2D &a, const Vertex2D &b);
+
+  OSMSCOUT_API Vertex2D operator+(const Vertex2D &a, const Vertex2D &b);
+
+  OSMSCOUT_API Vertex2D operator*(const Vertex2D &a, double scale);
+
   // make sure that we may use std::memcpy on Vertex2D
-  static_assert(std::is_trivially_copyable<Vertex2D>::value);
-  static_assert(std::is_trivially_assignable<Vertex2D,Vertex2D>::value);
+  static_assert(std::is_trivially_copyable_v<Vertex2D>);
+  static_assert(std::is_trivially_assignable_v<Vertex2D,Vertex2D>);
 
   /**
    * \ingroup Geometry

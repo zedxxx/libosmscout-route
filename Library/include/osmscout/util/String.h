@@ -25,14 +25,17 @@
 #include <memory>
 #include <string>
 #include <chrono>
+#include <optional>
+#include <utility>
 
-#include <osmscout/CoreFeatures.h>
+#include <osmscout/lib/CoreFeatures.h>
+#include <osmscout/lib/CoreImportExport.h>
 
 #include <osmscout/system/Assert.h>
+
 #include <osmscout/util/Time.h>
 #include <osmscout/util/Locale.h>
 
-#include <osmscout/CoreImportExport.h>
 #include <osmscout/OSMScoutTypes.h>
 
 namespace osmscout {
@@ -50,7 +53,7 @@ namespace osmscout {
    * @param string
    *    string with a potential boolean value (either 'true' or 'false')
    * @param value
-   *    value to copy the result to if no error occured
+   *    value to copy the result to if no error occurred
    * @return
    *    'true' if the value was parsed, else 'false'
    */
@@ -71,9 +74,19 @@ namespace osmscout {
    *
    * @param value
    * @param locale
-   * @return
+   * @return UTF-8 string
    */
   extern OSMSCOUT_API std::string NumberToString(long value, const Locale &locale);
+
+  /**
+   * Returns locale-aware string representation of number
+   *
+   * @param value
+   * @param locale
+   * @param precision
+   * @return UTF-8 string
+   */
+  extern OSMSCOUT_API std::string FloatToString(double value, const Locale &locale, uint32_t precision = 3);
 
   /**
    * \ingroup Util
@@ -316,13 +329,38 @@ namespace osmscout {
    *
    * \note when stringList is empty, result is empty list
    * \note separator must not be empty
-   * \note when string ends with separator, last (empty) element is omited
+   * \note when string ends with separator, last (empty) element is omitted
    * \note when maxSize is negative, list will contains all elements
    */
   extern OSMSCOUT_API std::list<std::string> SplitString(const std::string& stringList,
                                                          const std::string& separator,
                                                          int maxSize=-1);
 
+  /**
+   * \ingroup Util
+   * Replace all occurrences of search in input string by some other string.
+   * When search is empty, unchanged input string is returned.
+   *
+   * @param in - input string
+   * @param search
+   * @param replacement
+   * @return
+   */
+  extern OSMSCOUT_API std::string ReplaceString(const std::string &in,
+                                                const std::string &search,
+                                                const std::string &replacement);
+
+  /**
+   * Split string by separator to two parts. Unlike SplitString with maxSize=2,
+   * second element contains the rest of the string after first separator.
+   * When no separator found, nullopt is returned.
+   *
+   * \note when str is empty nullopt is returned
+   * \note separator must not be empty
+   * \note when string ends with separator, and there is just one, second element is empty
+   */
+  extern OSMSCOUT_API std::optional<std::pair<std::string,std::string>> SplitStringToPair(const std::string& str,
+                                                                                          const std::string& separator);
 
   /**
    * \ingroup Util
@@ -332,7 +370,7 @@ namespace osmscout {
    * Returns the first entry in the list
    *
    * \note stringList must not be empty
-   * \note at least one devider must be given
+   * \note at least one divider must be given
    */
   extern OSMSCOUT_API std::string GetFirstInStringList(const std::string& stringList,
                                                        const std::string& divider);
@@ -375,9 +413,13 @@ namespace osmscout {
   /**
    * \ingroup Util
    *
+   * Prints byte size with short, human readable form by ISO/IEC 80000 standard.
+   * It means that KiB stands for 1024 bytes, MiB for 1024^2, GiB 1024^3...
+   *
+   * Returned string is locale aware, UTF-8 encoded
    */
-  extern OSMSCOUT_API std::string ByteSizeToString(FileOffset size);
-  extern OSMSCOUT_API std::string ByteSizeToString(double size);
+  extern OSMSCOUT_API std::string ByteSizeToString(FileOffset size, const Locale &locale = Locale::ByEnvironmentSafe());
+  extern OSMSCOUT_API std::string ByteSizeToString(double size, const Locale &locale = Locale::ByEnvironmentSafe());
 
   /**
    * \ingroup Util
@@ -540,6 +582,11 @@ namespace osmscout {
   extern OSMSCOUT_API std::string TimestampToISO8601TimeString(const Timestamp &timestamp);
 
   extern OSMSCOUT_API std::string DurationString(const Duration &duration);
+
+  /**
+   * Trim trimmedChar from begin and end of str.
+   */
+  extern OSMSCOUT_API std::string Trim(const std::string &str, char trimmedChar=' ');
 }
 
 #endif

@@ -27,19 +27,28 @@
 
 #include <osmscout/OSMScoutTypes.h>
 #include <osmscout/TypeConfig.h>
-#include <osmscout/TypeFeatures.h>
 #include <osmscout/FeatureReader.h>
 
 #include <osmscout/Way.h>
 #include <osmscout/Area.h>
 
-#include <osmscout/util/Time.h>
-#include <osmscout/util/String.h>
-#include <osmscout/util/Logger.h>
+#include <osmscout/feature/AccessFeature.h>
+#include <osmscout/feature/GradeFeature.h>
+#include <osmscout/feature/MaxSpeedFeature.h>
 
 #include <osmscout/routing/RouteNode.h>
+#include <osmscout/routing/RoutingService.h>
+
+#include <osmscout/util/Time.h>
+#include <osmscout/util/String.h>
+#include <osmscout/log/Logger.h>
 
 namespace osmscout {
+#ifdef OSMSCOUT_DEBUG_ROUTING
+constexpr bool debugRouting = true;
+#else
+constexpr bool debugRouting = false;
+#endif
 
   /**
    * \ingroup Routing
@@ -84,7 +93,7 @@ namespace osmscout {
     void SetupValues()
     {
       double speedVal=0;
-      for (size_t i=0; i<5; i++){
+      for (size_t i=0; i<5; ++i){
         if (std::isnan(speed[i])){
           speed[i]=speedVal;
         } else {
@@ -117,7 +126,7 @@ namespace osmscout {
   class OSMSCOUT_API RoutingProfile
   {
   public:
-    virtual ~RoutingProfile();
+    virtual ~RoutingProfile() = default;
 
     virtual Vehicle GetVehicle() const = 0;
     virtual Distance GetCostLimitDistance() const = 0;
@@ -151,6 +160,8 @@ namespace osmscout {
      */
     virtual double GetCosts(const Way& way,
                             const Distance &distance) const = 0;
+
+    virtual double GetUTurnCost() const = 0;
 
     /**
      * Estimated cost for distance when are no limitations (max. speed on the way)
@@ -286,16 +297,18 @@ namespace osmscout {
     bool CanUseBackward(const Way& way) const override;
 
     Duration GetTime(const Area& area,
-                            const Distance &distance) const override
+                     const Distance& distance) const override
     {
       return GetTime2(area,distance);
     }
 
     Duration GetTime(const Way& way,
-                            const Distance &distance) const override
+                     const Distance& distance) const override
     {
       return GetTime2(way,distance);
     }
+
+    double GetUTurnCost() const override;
   };
 
   /**
@@ -464,7 +477,7 @@ namespace osmscout {
           currentNode.paths[outPathIndex].distance.As<Kilometer>() / speed;
 
       // add penalty for junction
-      // it is estimate without considering real junction geometry
+      // it is estimated without considering real junction geometry
       double junctionPenalty{0};
       if (applyJunctionPenalty && inObjIndex!=outObjIndex){
         auto penaltyDistance = inPathVariant.type != outPathVariant.type ?
@@ -477,9 +490,9 @@ namespace osmscout {
                           penaltyDistance.As<Kilometer>() / minSpeed;
 
         junctionPenalty = std::min(junctionPenalty, maxPenalty.count());
-#if defined(DEBUG_ROUTING)
-        std::cout << "  Add junction penalty " << GetCostString(junctionPenalty) << std::endl;
-#endif
+        if constexpr (debugRouting) {
+          std::cout << "  Add junction penalty " << GetCostString(junctionPenalty) << std::endl;
+        }
       }
 
       return outPrice + junctionPenalty;
@@ -488,15 +501,15 @@ namespace osmscout {
     double GetCosts(const Area& area,
                            const Distance &distance) const override
     {
-      auto time=GetTime2(area,distance);
-      return std::chrono::duration_cast<HourDuration>(time).count();
+      auto duration=GetTime2(area,distance);
+      return std::chrono::duration_cast<HourDuration>(duration).count();
     }
 
     double GetCosts(const Way& way,
                            const Distance &distance) const override
     {
-      auto time=GetTime2(way,distance);
-      return std::chrono::duration_cast<HourDuration>(time).count();
+      auto duration=GetTime2(way,distance);
+      return std::chrono::duration_cast<HourDuration>(duration).count();
     }
 
     double GetCosts(const Distance &distance) const override
@@ -506,6 +519,15 @@ namespace osmscout {
       speed=std::min(vehicleMaxSpeed,speed);
 
       return distance.As<Kilometer>()/speed;
+    }
+
+    double GetUTurnCost() const override
+    {
+      switch (vehicle) {
+        case Vehicle::vehicleCar: return 15.0/60.0; // 15 minutes, u-turn is not allowed in most places
+        case Vehicle::vehicleBicycle: return 1.0/60.0;
+        default: return 0;
+      }
     }
 
     std::string GetCostString(double cost) const override

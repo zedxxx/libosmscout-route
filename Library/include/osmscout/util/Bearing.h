@@ -20,7 +20,7 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
-#include <osmscout/CoreImportExport.h>
+#include <osmscout/lib/CoreImportExport.h>
 #include <osmscout/system/Compiler.h>
 #include <osmscout/system/Math.h>
 
@@ -114,6 +114,26 @@ namespace osmscout {
     bool operator!=(const Bearing& o) const
     {
       return radians != o.radians;
+    }
+
+    bool operator<(const Bearing& o) const
+    {
+      return radians<o.radians;
+    }
+
+    bool operator>(const Bearing& o) const
+    {
+      return radians>o.radians;
+    }
+
+    bool operator<=(const Bearing& o) const
+    {
+      return radians<=o.radians;
+    }
+
+    bool operator>=(const Bearing& o) const
+    {
+      return radians>=o.radians;
     }
 
     inline static Bearing Radians(double radians)

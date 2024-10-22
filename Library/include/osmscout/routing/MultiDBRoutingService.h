@@ -22,6 +22,7 @@
 */
 
 #include <osmscout/Pixel.h>
+
 #include <osmscout/routing/AbstractRoutingService.h>
 #include <osmscout/routing/SimpleRoutingService.h>
 #include <osmscout/routing/DBFileOffset.h>
@@ -40,11 +41,11 @@ namespace osmscout {
   private:
     struct DatabaseHandle CLASS_FINAL
     {
-      DatabaseId              dbId;            //<! Numeric id of the database (also index to the handles array)
-      DatabaseRef             database;        //<! Object database
-      RoutingDatabaseRef      routingDatabase; //<! Routing database
-      SimpleRoutingServiceRef router;          //<! Simple router for the given database
-      RoutingProfileRef       profile;         //<! Profile for the given database
+      DatabaseId              dbId;            //<! Numeric id of the db (also index to the handles array)
+      DatabaseRef             database;        //<! Object db
+      RoutingDatabaseRef      routingDatabase; //<! Routing db
+      SimpleRoutingServiceRef router;          //<! Simple router for the given db
+      RoutingProfileRef       profile;         //<! Profile for the given db
     };
 
   public:
@@ -52,7 +53,7 @@ namespace osmscout {
 
   private:
     std::vector<DatabaseHandle> handles;
-    bool                        isOpen;
+    bool                        isOpen=false;
 
   private:
     Vehicle GetVehicle(const MultiDBRoutingState& state) override;
@@ -75,6 +76,8 @@ namespace osmscout {
                     DatabaseId database,
                     const WayRef &way,
                     const Distance &wayLength) override;
+
+    double GetUTurnCost(const MultiDBRoutingState& state, const DatabaseId databaseId) override;
 
     double GetEstimateCosts(const MultiDBRoutingState& state,
                             DatabaseId database,
@@ -126,14 +129,26 @@ namespace osmscout {
 
     void Close();
 
+    /**
+     * Return first usable routable node from given object references.
+     *
+     * @param dbId
+     *      ID of db where objects exists.
+     * @param refs
+     *      References to possible routable objects
+     * @return routable node on object (way)
+     */
+    RoutePositionResult GetRoutableNode(const DatabaseId &dbId, const std::vector<ObjectFileRef> &refs);
+
     RoutePositionResult GetClosestRoutableNode(const GeoCoord &coord,
                                                const Distance &radius=Kilometers(1)) const;
 
     RoutingResult CalculateRoute(const RoutePosition &start,
                                  const RoutePosition &target,
+                                 const std::optional<osmscout::Bearing> &bearing,
                                  const RoutingParameter &parameter);
 
-    RoutingResult CalculateRoute(std::vector<osmscout::GeoCoord> via,
+    RoutingResult CalculateRoute(const std::vector<osmscout::GeoCoord>& via,
                                  const Distance &radius,
                                  const RoutingParameter& parameter);
 
@@ -147,6 +162,8 @@ namespace osmscout {
                                      const std::list<RoutePostprocessor::PostprocessorRef> &postprocessors);
 
     std::map<DatabaseId, std::string> GetDatabaseMapping() const override;
+
+    std::optional<DatabaseId> GetDatabaseId(const std::string& databasePath) const;
   };
 
   //! \ingroup Service

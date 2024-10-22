@@ -28,7 +28,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include <osmscout/CoreFeatures.h>
+#include <osmscout/lib/CoreFeatures.h>
+
 #include <osmscout/TypeConfig.h>
 #include <osmscout/Point.h>
 #include <osmscout/Pixel.h>
@@ -54,43 +55,59 @@ namespace osmscout {
     RouteData route;
     Distance  currentMaxDistance;
     Distance  overallDistance;
+    std::vector<int> sectionLengths;
 
   public:
     RoutingResult();
 
-    inline void SetOverallDistance(const Distance &overallDistance)
+    void SetOverallDistance(const Distance &overallDistance)
     {
       this->overallDistance=overallDistance;
     }
 
-    inline void SetCurrentMaxDistance(const Distance &currentMaxDistance)
+    void SetCurrentMaxDistance(const Distance &currentMaxDistance)
     {
       this->currentMaxDistance=currentMaxDistance;
     }
 
-    inline Distance GetOverallDistance() const
+    Distance GetOverallDistance() const
     {
       return overallDistance;
     }
 
-    inline Distance GetCurrentMaxDistance() const
+    Distance GetCurrentMaxDistance() const
     {
       return currentMaxDistance;
     }
 
-    inline RouteData& GetRoute()
+    RouteData& GetRoute()
     {
       return route;
     }
 
-    inline const RouteData& GetRoute() const
+    const RouteData& GetRoute() const
     {
       return route;
     }
 
-    inline bool Success() const
+    bool Success() const
     {
       return !route.IsEmpty();
+    }
+      
+    const std::vector<int>& GetSectionLenghts() const
+    {
+      return sectionLengths;
+    }
+      
+    void AppendSectionLength(int length)
+    {
+      this->sectionLengths.push_back(length);
+    }
+
+    void ClearSectionLengths()
+    {
+      this->sectionLengths.clear();
     }
   };
 
@@ -113,12 +130,12 @@ namespace osmscout {
     RoutePointsResult();
     explicit RoutePointsResult(const RoutePointsRef& points);
 
-    inline bool Success() const
+    bool Success() const
     {
       return success;
     }
 
-    inline RoutePointsRef GetPoints() const
+    RoutePointsRef GetPoints() const
     {
       return points;
     }
@@ -134,12 +151,12 @@ namespace osmscout {
     RouteDescriptionResult();
     explicit RouteDescriptionResult(const RouteDescriptionRef& description);
 
-    inline bool Success() const
+    bool Success() const
     {
       return success;
     }
 
-    inline RouteDescriptionRef GetDescription() const
+    RouteDescriptionRef GetDescription() const
     {
       return description;
     }
@@ -155,12 +172,12 @@ namespace osmscout {
     RouteWayResult();
     explicit RouteWayResult(const WayRef& way);
 
-    inline bool Success() const
+    bool Success() const
     {
       return success;
     }
 
-    inline WayRef GetWay() const
+    WayRef GetWay() const
     {
       return way;
     }
@@ -199,6 +216,8 @@ namespace osmscout {
                             size_t inPathIndex,
                             size_t outPathIndex) = 0;
 
+    virtual double GetUTurnCost(const RoutingState& state, const DatabaseId databaseId) = 0;
+
     virtual double GetCosts(const RoutingState& state,
                             DatabaseId database,
                             const WayRef &way,
@@ -220,9 +239,9 @@ namespace osmscout {
                                std::unordered_map<DBId,RouteNodeRef> &routeNodeMap) = 0;
 
     /**
-     * Return the route node for the given database offset
-     * @param offset
-     *    Offset in given database
+     * Return the route node for the given db offset
+     * @param id
+     *    Database and Offset in given db
      * @param node
      *    Node instance to write the result back
      * @return
@@ -243,9 +262,8 @@ namespace osmscout {
     virtual bool GetAreasByOffset(const std::set<DBFileOffset> &areaOffsets,
                                   std::unordered_map<DBFileOffset,AreaRef> &areaMap) = 0;
 
-    void ResolveRNodeChainToList(DBId finalRouteNode,
+    void ResolveRNodeChainToList(const RNode &finalRouteNode,
                                  const ClosedSet& closedSet,
-                                 const ClosedSet& closedRestrictedSet,
                                  std::list<VNode>& nodes);
 
     virtual bool ResolveRouteDataJunctions(RouteData& route) = 0;
@@ -336,8 +354,7 @@ namespace osmscout {
                                       RouteNodeRef &currentRouteNode,
                                       OpenList &openList,
                                       OpenMap &openMap,
-                                      const ClosedSet &closedSet,
-                                      const ClosedSet &closedRestrictedSet);
+                                      const ClosedSet &closedSet);
 
     virtual bool WalkPaths(const RoutingState& state,
                            RNodeRef &current,
@@ -345,7 +362,6 @@ namespace osmscout {
                            OpenList &openList,
                            OpenMap &openMap,
                            ClosedSet &closedSet,
-                           ClosedSet &closedRestrictedSet,
                            RoutingResult &result,
                            const RoutingParameter& parameter,
                            const GeoCoord &targetCoord,
@@ -354,6 +370,13 @@ namespace osmscout {
                            Distance &currentMaxDistance,
                            const Distance &overallDistance,
                            const double &costLimit);
+
+    bool RestrictInitialUTurn(const RoutingState& state,
+                              const Bearing& vehicleBearing,
+                              const RoutePosition& start,
+                              RNodeRef startForwardNode,
+                              RNodeRef startBackwardNode);
+
   public:
     explicit AbstractRoutingService(const RouterParameter& parameter);
     ~AbstractRoutingService() override;
@@ -361,6 +384,7 @@ namespace osmscout {
     RoutingResult CalculateRoute(RoutingState& state,
                                  const RoutePosition& start,
                                  const RoutePosition& target,
+                                 const std::optional<osmscout::Bearing> &bearing,
                                  const RoutingParameter& parameter);
 
     RouteDescriptionResult TransformRouteDataToRouteDescription(const RouteData& data);
@@ -368,7 +392,7 @@ namespace osmscout {
     RouteWayResult TransformRouteDataToWay(const RouteData& data);
 
     /**
-     * Get current mapping of DatabaseId to database path than be used
+     * Get current mapping of DatabaseId to db path than be used
      * later for lookup objects in description
      *
      * @return

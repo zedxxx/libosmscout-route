@@ -2,7 +2,7 @@
 #include <string>
 #include <cassert>
 
-#include <osmscout/Database.h>
+#include <osmscout/db/Database.h>
 #include <osmscout/routing/RoutingProfile.h>
 
 #include "Router.h"

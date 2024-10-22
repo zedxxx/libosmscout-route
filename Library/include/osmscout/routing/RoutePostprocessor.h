@@ -25,15 +25,22 @@
 #include <memory>
 #include <unordered_map>
 
-#include <osmscout/CoreFeatures.h>
+#include <osmscout/lib/CoreFeatures.h>
 
 #include <osmscout/TypeConfig.h>
-#include <osmscout/TypeFeatures.h>
+
+#include <osmscout/feature/BridgeFeature.h>
+#include <osmscout/feature/ClockwiseDirectionFeature.h>
+#include <osmscout/feature/DestinationFeature.h>
+#include <osmscout/feature/LanesFeature.h>
+#include <osmscout/feature/NameFeature.h>
+#include <osmscout/feature/RefFeature.h>
+#include <osmscout/feature/RoundaboutFeature.h>
 
 #include <osmscout/util/Time.h>
 
 // Database
-#include <osmscout/Database.h>
+#include <osmscout/db/Database.h>
 
 // Routing
 #include <osmscout/routing/RouteData.h>
@@ -41,6 +48,80 @@
 #include <osmscout/routing/RoutingProfile.h>
 
 namespace osmscout {
+
+  class OSMSCOUT_API PostprocessorContext
+  {
+  public:
+    virtual AreaRef GetArea(const DBFileOffset &offset) const = 0;
+    virtual WayRef GetWay(const DBFileOffset &offset) const = 0;
+    virtual NodeRef GetNode(const DBFileOffset &offset) const = 0;
+
+    virtual const LanesFeatureValueReader& GetLaneReader(const DatabaseId &dbId) const = 0;
+    virtual const AccessFeatureValueReader& GetAccessReader(const DatabaseId &dbId) const = 0;
+
+    virtual Duration GetTime(DatabaseId dbId,const Area& area,const Distance &deltaDistance) const = 0;
+    virtual Duration GetTime(DatabaseId dbId,const Way& way,const Distance &deltaDistance) const = 0;
+
+    virtual RouteDescription::NameDescriptionRef GetNameDescription(const RouteDescription::Node& node) const = 0;
+    virtual RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
+                                                                    const ObjectFileRef& object) const = 0;
+    virtual RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
+                                                                    const Node& node) const = 0;
+    virtual RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
+                                                                    const Area& area) const = 0;
+    virtual RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
+                                                                    const Way& way) const = 0;
+
+    virtual bool IsMotorwayLink(const RouteDescription::Node& node) const = 0;
+    virtual bool IsMotorway(const RouteDescription::Node& node) const = 0;
+
+    virtual bool IsMiniRoundabout(const RouteDescription::Node& node) const = 0;
+    virtual bool IsClockwise(const RouteDescription::Node& node) const = 0;
+    virtual bool IsRoundabout(const RouteDescription::Node& node) const = 0;
+    virtual bool IsBridge(const RouteDescription::Node& node) const = 0;
+
+    virtual NodeRef GetJunctionNode(const RouteDescription::Node& node) const = 0;
+
+    virtual RouteDescription::DestinationDescriptionRef GetDestination(const RouteDescription::Node& node) const = 0;
+
+    virtual uint8_t GetMaxSpeed(const RouteDescription::Node& node) const = 0;
+
+    virtual RouteDescription::LaneDescription GetLanes(const DatabaseId& dbId, const WayRef& way, bool forward) const;
+
+    virtual RouteDescription::LaneDescriptionRef GetLanes(const RouteDescription::Node& node) const;
+
+    virtual Id GetNodeId(const RouteDescription::Node& node) const;
+
+    virtual size_t GetNodeIndex(const RouteDescription::Node& node,
+                                Id nodeId) const = 0;
+
+    virtual bool CanUseBackward(const DatabaseId& dbId,
+                                Id fromNodeId,
+                                const ObjectFileRef& object) const = 0;
+
+    virtual bool CanUseForward(const DatabaseId& dbId,
+                               Id fromNodeId,
+                               const ObjectFileRef& object) const = 0;
+
+    virtual bool IsBackwardPath(const ObjectFileRef& object,
+                                size_t fromNodeIndex,
+                                size_t toNodeIndex) const = 0;
+
+    virtual bool IsForwardPath(const ObjectFileRef& object,
+                               size_t fromNodeIndex,
+                               size_t toNodeIndex) const = 0;
+
+    virtual bool IsNodeStartOrEndOfObject(const RouteDescription::Node& node,
+                                          const ObjectFileRef& object) const = 0;
+
+    virtual GeoCoord GetCoordinates(const RouteDescription::Node& node,
+                                    size_t nodeIndex) const = 0;
+
+    /** Get low level database objects (indexed by DatabaseId)
+     */
+    virtual std::vector<DatabaseRef> GetDatabases() const = 0;
+
+  };
 
   /**
    * \ingroup Routing
@@ -52,7 +133,7 @@ namespace osmscout {
    * base class allowing to write traversial code for a specific aim. The complete routing description
    * is the result of the sum of all information collected by the individual processors.
    */
-  class OSMSCOUT_API RoutePostprocessor
+  class OSMSCOUT_API RoutePostprocessor: public PostprocessorContext
   {
   public:
     /**
@@ -65,7 +146,7 @@ namespace osmscout {
     public:
       virtual ~Postprocessor() = default;
 
-      virtual bool Process(const RoutePostprocessor& postprocessor,
+      virtual bool Process(const PostprocessorContext& context,
                            RouteDescription& description) = 0;
     };
 
@@ -83,7 +164,7 @@ namespace osmscout {
     public:
       explicit StartPostprocessor(const std::string& startDescription);
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -99,7 +180,7 @@ namespace osmscout {
     public:
       explicit TargetPostprocessor(const std::string& targetDescription);
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -112,7 +193,7 @@ namespace osmscout {
     public:
       DistanceAndTimePostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -125,7 +206,7 @@ namespace osmscout {
     public:
       WayNamePostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -138,7 +219,7 @@ namespace osmscout {
     public:
       WayTypePostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -149,7 +230,7 @@ namespace osmscout {
     class OSMSCOUT_API CrossingWaysPostprocessor : public Postprocessor
     {
     private:
-      void AddCrossingWaysDescriptions(const RoutePostprocessor& postprocessor,
+      void AddCrossingWaysDescriptions(const PostprocessorContext& context,
                                        const RouteDescription::CrossingWaysDescriptionRef& description,
                                        const RouteDescription::Node& node,
                                        const ObjectFileRef& originObject,
@@ -158,7 +239,7 @@ namespace osmscout {
     public:
       CrossingWaysPostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -178,7 +259,7 @@ namespace osmscout {
     public:
       DirectionPostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -191,7 +272,7 @@ namespace osmscout {
     public:
       MotorwayJunctionPostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -204,7 +285,7 @@ namespace osmscout {
     public:
       DestinationPostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -217,7 +298,7 @@ namespace osmscout {
     public:
       MaxSpeedPostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -239,6 +320,7 @@ namespace osmscout {
         ObjectFileRef ref;
         size_t node;
         Bearing bearing;
+        bool canBeUsedAsExit;
       };
 
     private:
@@ -248,13 +330,13 @@ namespace osmscout {
       bool                     roundaboutClockwise{false};
 
     private:
-      State GetInitialState(const RoutePostprocessor& postprocessor,
+      State GetInitialState(const PostprocessorContext& context,
                             RouteDescription::Node& node);
 
-      void HandleRoundaboutEnter(const RoutePostprocessor& postprocessor, RouteDescription::Node& node);
+      void HandleRoundaboutEnter(const PostprocessorContext& context, RouteDescription::Node& node);
       void HandleRoundaboutNode(RouteDescription::Node& node);
       void HandleRoundaboutLeave(RouteDescription::Node& node);
-      void HandleMiniRoundabout(const RoutePostprocessor& postprocessor,
+      void HandleMiniRoundabout(const PostprocessorContext& context,
                                 RouteDescription::Node& node,
                                 ObjectFileRef incomingPath,
                                 size_t incomingNode);
@@ -263,7 +345,7 @@ namespace osmscout {
                                      const RouteDescription::NameDescriptionRef& toName);
       void HandleDirectMotorwayLeave(RouteDescription::Node& node,
                                      const RouteDescription::NameDescriptionRef& fromName);
-      void HandleMotorwayLink(const RoutePostprocessor& postprocessor,
+      void HandleMotorwayLink(const PostprocessorContext& context,
                               const RouteDescription::NameDescriptionRef &originName,
                               const std::list<RouteDescription::Node>::const_iterator &lastNode,
                               const std::list<RouteDescription::Node>::iterator &node,
@@ -271,15 +353,22 @@ namespace osmscout {
       bool HandleNameChange(std::list<RouteDescription::Node>::const_iterator& lastNode,
                             std::list<RouteDescription::Node>::iterator& node,
                             const std::list<RouteDescription::Node>::const_iterator &end);
-      bool HandleDirectionChange(const RoutePostprocessor& postprocessor,
+      bool HandleDirectionChange(const PostprocessorContext& context,
                                  const std::list<RouteDescription::Node>::iterator& node,
                                  const std::list<RouteDescription::Node>::const_iterator& end);
+      std::vector<NodeExit> CollectNodeWays(const PostprocessorContext& context,
+                                            RouteDescription::Node& node,
+                                            bool exitsOnly);
+
       // just ways are supported as exits
-      std::vector<NodeExit> CollectNodeExits(const RoutePostprocessor& postprocessor,
-                                             RouteDescription::Node& node);
+      inline std::vector<NodeExit> CollectNodeExits(const PostprocessorContext& context,
+                                                    RouteDescription::Node& node)
+      {
+        return CollectNodeWays(context, node, true);
+      }
 
     public:
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
 
     };
@@ -303,15 +392,15 @@ namespace osmscout {
 
     private:
       std::set<ObjectFileRef> CollectPaths(const std::list<RouteDescription::Node>& nodes) const;
-      std::list<WayRef> CollectWays(const RoutePostprocessor& postprocessor,
+      std::list<WayRef> CollectWays(const PostprocessorContext& context,
                                     const std::list<RouteDescription::Node>& nodes) const;
-      std::list<AreaRef> CollectAreas(const RoutePostprocessor& postprocessor,
+      std::list<AreaRef> CollectAreas(const PostprocessorContext& context,
                                       const std::list<RouteDescription::Node>& nodes) const;
       std::map<ObjectFileRef,std::set<ObjectFileRef>> CollectPOICandidates(const Database& database,
                                                                            const std::set<ObjectFileRef>& paths,
                                                                            const std::list<WayRef>& ways,
                                                                            const std::list<AreaRef>& areas);
-      std::map<ObjectFileRef,POIAtRoute> AnalysePOICandidates(const RoutePostprocessor& postprocessor,
+      std::map<ObjectFileRef,POIAtRoute> AnalysePOICandidates(const PostprocessorContext& context,
                                                               const DatabaseId& databaseId,
                                                               std::list<RouteDescription::Node>& nodes,
                                                               const TypeInfoSet& nodeTypes,
@@ -325,7 +414,7 @@ namespace osmscout {
     public:
       POIsPostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -340,7 +429,7 @@ namespace osmscout {
     public:
       LanesPostprocessor() = default;
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
     };
 
@@ -354,18 +443,50 @@ namespace osmscout {
     class OSMSCOUT_API SuggestedLanesPostprocessor : public RoutePostprocessor::Postprocessor
     {
     public:
-      SuggestedLanesPostprocessor(const Distance &distanceBefore=Meters(500)) :
+      explicit SuggestedLanesPostprocessor(const Distance &distanceBefore=Meters(500)) :
         Postprocessor(), distanceBefore(distanceBefore) {};
 
-      bool Process(const RoutePostprocessor& postprocessor,
+      bool Process(const PostprocessorContext& context,
                    RouteDescription& description) override;
+
+    private:
+      RouteDescription::LaneDescriptionRef GetLaneDescription(const RouteDescription::Node &node) const;
+
+      /** Evaluate suggested lanes on nodes from "backBuffer", followed by "node".
+       * Node itself is junction, where count of lanes (on way from the node)
+       * is smaller than on the previous node (back of backBuffer).
+       *
+       * @param node
+       * @param backBuffer buffer of traveled nodes, recent node at back
+       */
+      void EvaluateLaneSuggestion(const PostprocessorContext& context,
+                                  const RouteDescription::Node &node,
+                                  const std::list<RouteDescription::Node*> &backBuffer) const;
+
     private:
       Distance distanceBefore;
+    };
+      
+    /**
+    * \ingroup Routing
+    * Adds section to the route if there is one or more via node
+    */
+    class OSMSCOUT_API SectionsPostprocessor : public Postprocessor
+    {
+    private:
+        std::vector<int> sectionLengths;
+    public:
+        explicit SectionsPostprocessor(const std::vector<int>& sectionLengths) : Postprocessor(), sectionLengths(sectionLengths) {};
+
+    bool Process(const PostprocessorContext& context,
+                 RouteDescription& description) override;
     };
 
     using SuggestedLanesPostprocessorRef = std::shared_ptr<SuggestedLanesPostprocessor>;
 
   private:
+    /* TODO: separate PostprocessorContext implementation from RoutePostprocessor, move state context
+     */
     std::vector<RoutingProfileRef>                                profiles;
     std::vector<DatabaseRef>                                      databases;
 
@@ -395,80 +516,75 @@ namespace osmscout {
     void Cleanup();
 
   private:
-    AreaRef GetArea(const DBFileOffset &offset) const;
-    WayRef GetWay(const DBFileOffset &offset) const;
-    NodeRef GetNode(const DBFileOffset &offset) const;
+    AreaRef GetArea(const DBFileOffset &offset) const override;
+    WayRef GetWay(const DBFileOffset &offset) const override;
+    NodeRef GetNode(const DBFileOffset &offset) const override;
 
-    Duration GetTime(DatabaseId dbId,const Area& area,const Distance &deltaDistance) const;
-    Duration GetTime(DatabaseId dbId,const Way& way,const Distance &deltaDistance) const;
+    const LanesFeatureValueReader& GetLaneReader(const DatabaseId &dbId) const override;
+    const AccessFeatureValueReader& GetAccessReader(const DatabaseId &dbId) const override;
 
-    RouteDescription::NameDescriptionRef GetNameDescription(const RouteDescription::Node& node) const;
+    Duration GetTime(DatabaseId dbId,const Area& area,const Distance &deltaDistance) const override;
+    Duration GetTime(DatabaseId dbId,const Way& way,const Distance &deltaDistance) const override;
+
+    RouteDescription::NameDescriptionRef GetNameDescription(const RouteDescription::Node& node) const override;
     RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
-                                                            const ObjectFileRef& object) const;
+                                                            const ObjectFileRef& object) const override;
     RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
-                                                            const Node& node) const;
+                                                            const Node& node) const override;
     RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
-                                                            const Area& area) const;
+                                                            const Area& area) const override;
     RouteDescription::NameDescriptionRef GetNameDescription(DatabaseId dbId,
-                                                            const Way& way) const;
+                                                            const Way& way) const override;
 
-    bool IsMotorwayLink(const RouteDescription::Node& node) const;
-    bool IsMotorway(const RouteDescription::Node& node) const;
+    bool IsMotorwayLink(const RouteDescription::Node& node) const override;
+    bool IsMotorway(const RouteDescription::Node& node) const override;
 
-    bool IsMiniRoundabout(const RouteDescription::Node& node) const;
-    bool IsRoundabout(const RouteDescription::Node& node) const;
-    bool IsBridge(const RouteDescription::Node& node) const;
+    bool IsMiniRoundabout(const RouteDescription::Node& node) const override;
+    bool IsClockwise(const RouteDescription::Node& node) const override;
+    bool IsRoundabout(const RouteDescription::Node& node) const override;
+    bool IsBridge(const RouteDescription::Node& node) const override;
 
-    RouteDescription::DestinationDescriptionRef GetDestination(const RouteDescription::Node& node) const;
+    NodeRef GetJunctionNode(const RouteDescription::Node& node) const override;
 
-    uint8_t GetMaxSpeed(const RouteDescription::Node& node) const;
+    RouteDescription::DestinationDescriptionRef GetDestination(const RouteDescription::Node& node) const override;
 
-    RouteDescription::LaneDescriptionRef GetLanes(const RouteDescription::Node& node) const;
-
-    Id GetNodeId(const RouteDescription::Node& node) const;
+    uint8_t GetMaxSpeed(const RouteDescription::Node& node) const override;
 
     size_t GetNodeIndex(const RouteDescription::Node& node,
-                        Id nodeId) const;
+                        Id nodeId) const override;
 
     bool CanUseBackward(const DatabaseId& dbId,
                         Id fromNodeId,
-                        const ObjectFileRef& object) const;
+                        const ObjectFileRef& object) const override;
 
     bool CanUseForward(const DatabaseId& dbId,
                        Id fromNodeId,
-                       const ObjectFileRef& object) const;
+                       const ObjectFileRef& object) const override;
 
     bool IsBackwardPath(const ObjectFileRef& object,
                         size_t fromNodeIndex,
-                        size_t toNodeIndex) const;
+                        size_t toNodeIndex) const override;
 
     bool IsForwardPath(const ObjectFileRef& object,
                        size_t fromNodeIndex,
-                       size_t toNodeIndex) const;
+                       size_t toNodeIndex) const override;
 
     bool IsNodeStartOrEndOfObject(const RouteDescription::Node& node,
-                                  const ObjectFileRef& object) const;
+                                  const ObjectFileRef& object) const override;
 
     GeoCoord GetCoordinates(const RouteDescription::Node& node,
-                            size_t nodeIndex) const;
+                            size_t nodeIndex) const override;
+
+    std::vector<DatabaseRef> GetDatabases() const override;
 
   public:
-    /*
-     * TODO:
-     * All Postprocessors are allowed to use our internal methods currently.
-     * We should fix this by moving helper methods to a separate
-     * PostprocessorContext object that gets passed to the postprocessors explicitly.
-     * This would also move state out of the RoutePostprocessor itself.
-     */
-    friend Postprocessor;
-
     bool PostprocessRouteDescription(RouteDescription& description,
                                      const std::vector<RoutingProfileRef>& profiles,
                                      const std::vector<DatabaseRef>& databases,
                                      const std::list<PostprocessorRef>& processors,
-                                     const std::set<std::string>& motorwayTypeNames=std::set<std::string>(),
-                                     const std::set<std::string>& motorwayLinkTypeNames=std::set<std::string>(),
-                                     const std::set<std::string>& junctionTypeNames=std::set<std::string>(),
+                                     const std::set<std::string,std::less<>>& motorwayTypeNames=std::set<std::string,std::less<>>(),
+                                     const std::set<std::string,std::less<>>& motorwayLinkTypeNames=std::set<std::string,std::less<>>(),
+                                     const std::set<std::string,std::less<>>& junctionTypeNames=std::set<std::string,std::less<>>(),
                                      const std::string& miniRoundaboutTypeName="highway_mini_roundabout");
   };
 }

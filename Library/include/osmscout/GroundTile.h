@@ -63,44 +63,44 @@ namespace osmscout {
       uint16_t y;
       bool     coast;
 
-      inline Coord() = default;
+      Coord() = default;
 
-      inline Coord(uint16_t x,
-                   uint16_t y,
-                   bool coast)
+      Coord(uint16_t x,
+            uint16_t y,
+            bool coast)
       : x(x),
         y(y),
         coast(coast)
       {
       }
 
-      inline void Set(uint16_t x,
-                      uint16_t y,
-                      bool coast)
+      void Set(uint16_t x,
+               uint16_t y,
+               bool coast)
       {
         this->x=x;
         this->y=y;
         this->coast=coast;
       }
 
-      inline bool operator==(const Coord &coord) const
+      bool operator==(const Coord &coord) const
       {
         return x==coord.x && y==coord.y && coast==coord.coast;
       }
     };
 
-    Type               type;          //!< The type of the cell
-    size_t             xAbs;          //!< Absolute x coordinate of the cell in relation to level and cell size
-    size_t             yAbs;          //!< Absolute y coordinate of the cell in relation to level and cell size
-    size_t             xRel;          //!< X coordinate of cell in relation to cell index of this level
-    size_t             yRel;          //!< Y coordinate of cell in relation to cell index of this level
-    double             cellWidth;     //!< Width of cell
-    double             cellHeight;    //!< Height of cell
-    std::vector<Coord> coords;        //!< Optional coordinates for coastline
+    Type               type;            //!< The type of the cell
+    size_t             xAbs{0};         //!< Absolute x coordinate of the cell in relation to level and cell size
+    size_t             yAbs{0};         //!< Absolute y coordinate of the cell in relation to level and cell size
+    size_t             xRel{0};         //!< X coordinate of cell in relation to cell index of this level
+    size_t             yRel{0};         //!< Y coordinate of cell in relation to cell index of this level
+    double             cellWidth{0.0};  //!< Width of cell
+    double             cellHeight{0.0}; //!< Height of cell
+    std::vector<Coord> coords;          //!< Optional coordinates for coastline
 
-    inline GroundTile() = default;
+    GroundTile() = default;
 
-    inline explicit GroundTile(Type type)
+    explicit GroundTile(Type type)
     : type(type)
     {
       // no code

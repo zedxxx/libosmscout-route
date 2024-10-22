@@ -52,7 +52,7 @@ private:
     Distance distance;
     Timestamp::duration duration{Timestamp::duration::zero()};
 
-    inline TrackSegment(const Distance &distance, const Timestamp::duration &duration):
+    TrackSegment(const Distance &distance, const Timestamp::duration &duration):
       distance(distance), duration(duration)
     {}
   };
@@ -63,7 +63,7 @@ private:
     GeoCoord coord;
     Timestamp time;
 
-    inline operator bool() const
+    explicit operator bool() const
     {
       return time.time_since_epoch()!=Timestamp::duration::zero();
     }

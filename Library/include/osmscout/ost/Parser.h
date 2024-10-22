@@ -22,8 +22,10 @@
 #define osmscout_ost_PARSER_H
 
 #include <osmscout/TypeConfig.h>
-#include <osmscout/TypeFeatures.h>
 
+#include <osmscout/feature/NameFeature.h>
+
+#include <osmscout/io/File.h>
 #include <osmscout/util/String.h>
 
 #include <osmscout/ost/Scanner.h>
@@ -92,6 +94,7 @@ private:
   TokenRef t;  // last recognized token
   TokenRef la; // lookahead token
 
+  std::string filename;
   TypeConfig& config;
 
 public:
@@ -113,17 +116,20 @@ std::string Destring(const char* str)
 
 
   Parser(Scanner *scanner,
+         const std::string& filename,
          TypeConfig& config);
   ~Parser();
   void SemErr(const char* msg);
 
 	void OST();
+	void IMPORTS();
 	void MAXSPEEDS();
 	void GRADES();
 	void FEATURES();
 	void TYPES();
-	void MAXSPEED();
+	void IMPORT();
 	void STRING(std::string& value);
+	void MAXSPEED();
 	void UINT(size_t& value);
 	void GRADE();
 	void FEATURE();
@@ -162,4 +168,3 @@ std::string Destring(const char* str)
 
 
 #endif // !defined(COCO_PARSER_H__)
-

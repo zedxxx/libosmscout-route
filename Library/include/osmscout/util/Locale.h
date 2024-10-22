@@ -20,10 +20,11 @@
   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307  USA
 */
 
-#include <osmscout/CoreImportExport.h>
+#include <osmscout/lib/CoreImportExport.h>
 #include <osmscout/system/Compiler.h>
 
 #include <osmscout/util/Distance.h>
+#include <osmscout/log/Logger.h>
 
 #include <string>
 
@@ -102,7 +103,33 @@ namespace osmscout {
     }
 
   public:
-    static Locale ByEnvironment(std::locale locale = std::locale(""));
+
+    /** Creates Locale from provided std::locale
+     */
+    static Locale FromStdLocale(std::locale locale);
+
+    /** Creates Locale defined by current environment
+     *
+     * @throw std::runtime_error when locale defined by environment is undefined
+     */
+    static Locale ByEnvironment()
+    {
+      return FromStdLocale(std::locale(""));
+    }
+
+    /** Creates Locale defined by current environment,
+     * it is not throwing exception when environment locale is incorrect,
+     * it just return default Locale instead.
+     */
+    static Locale ByEnvironmentSafe()
+    {
+      try {
+        return ByEnvironment();
+      } catch (const std::runtime_error &e) {
+        log.Warn() << "Failed to get environment locale: " << e.what();
+        return Locale();
+      }
+    }
   };
 }
 

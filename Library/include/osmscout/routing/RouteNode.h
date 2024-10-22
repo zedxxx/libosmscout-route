@@ -28,8 +28,8 @@
 #include <osmscout/OSMScoutTypes.h>
 #include <osmscout/TypeConfig.h>
 
-#include <osmscout/util/FileScanner.h>
-#include <osmscout/util/FileWriter.h>
+#include <osmscout/io/FileScanner.h>
+#include <osmscout/io/FileWriter.h>
 
 namespace osmscout {
 
@@ -100,7 +100,20 @@ namespace osmscout {
       Id         id;          //!< id of the targeting route node
       uint8_t    objectIndex; //!< The index of the way to use from this route node to the target route node
       uint8_t    flags;       //!< Certain flags
-      //uint8_t    bearing;   //!< Encoded initial and final bearing of this path
+
+      bool IsUsable(Vehicle vehicle) const
+      {
+        switch (vehicle) {
+          case vehicleFoot:
+            return (flags & usableByFoot) != 0;
+          case vehicleBicycle:
+            return (flags & usableByBicycle) != 0;
+          case vehicleCar:
+            return (flags & usableByCar) != 0;
+        }
+
+        return false;
+      }
 
       bool IsRestricted(Vehicle vehicle) const
       {
@@ -141,8 +154,12 @@ namespace osmscout {
       return point.GetCoord();
     }
 
+    Point GetPoint() const {
+      return point;
+    }
+
     void Initialize(FileOffset fileOffset,
-                           const Point& point)
+                    const Point& point)
     {
       this->fileOffset=fileOffset;
       this->point=point;

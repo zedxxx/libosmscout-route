@@ -32,6 +32,7 @@
 #include <osmscout/GeoCoord.h>
 #include <osmscout/routing/DBFileOffset.h>
 #include <osmscout/util/Distance.h>
+#include <osmscout/util/LaneTurn.h>
 #include <osmscout/util/Time.h>
 
 namespace osmscout {
@@ -91,7 +92,9 @@ namespace osmscout {
     static const char* const LANES_DESC;
     /** Constant for a description of suggested route lanes (SuggestedLaneDescription) */
     static const char* const SUGGESTED_LANES_DESC;
-
+    /** Constant for a description of the first node of a route section */
+    static const char* const NODE_VIA_DESC;
+      
   public:
     /**
      * \ingroup Routing
@@ -593,19 +596,14 @@ namespace osmscout {
        * turns in lanes from left one (drivers view)
        * vector size may be less than laneCount, even empty
        *
-       * usual variants:
-       *    left, slight_left, merge_to_left,
-       *    through;left, through;slight_left, through;sharp_left,
-       *    through,
-       *    through;right, through;slight_right, through;sharp_right,
-       *    right, slight_right, merge_to_right
+       * @see LanesFeatureValue::LaneTurn
        */
-      std::vector<std::string> laneTurns;
+      std::vector<LaneTurn> laneTurns;
 
     public:
       LaneDescription(bool oneway,
                       uint8_t laneCount,
-                      const std::vector<std::string> &laneTurns);
+                      const std::vector<LaneTurn> &laneTurns);
 
       std::string GetDebugString() const override;
 
@@ -619,7 +617,7 @@ namespace osmscout {
         return laneCount;
       }
 
-      const std::vector<std::string>& GetLaneTurns() const
+      const std::vector<LaneTurn>& GetLaneTurns() const
       {
         return laneTurns;
       }
@@ -633,7 +631,7 @@ namespace osmscout {
     /**
      * \ingroup Routing
      *
-     * A suggested route lanes. It specifies range of lanes <from, to> that drive
+     * A suggested route lanes. It specifies range of lanes <from, to> that driver
      * should use. Lanes are counted from left (just route direction, not opposite direction),
      * left-most lane has index 0, both indexes are inclusive.
      */
@@ -642,9 +640,10 @@ namespace osmscout {
     private:
       uint8_t from = uint8_t(-1); //!< left-most suggested lane, inclusive
       uint8_t to = uint8_t(-1); //!< right-most suggested lane, inclusive
+      LaneTurn turn{LaneTurn::None};
 
     public:
-      SuggestedLaneDescription(uint8_t from, uint8_t to);
+      SuggestedLaneDescription(uint8_t from, uint8_t to, LaneTurn turn);
 
       std::string GetDebugString() const override;
 
@@ -657,17 +656,44 @@ namespace osmscout {
       {
         return to;
       }
+
+      LaneTurn GetTurn() const
+      {
+        return turn;
+      }
     };
 
     using SuggestedLaneDescriptionRef = std::shared_ptr<SuggestedLaneDescription>;
 
     /**
      * \ingroup Routing
+     * Start of the route
+     */
+     class OSMSCOUT_API ViaDescription : public Description
+     {
+     private:
+       int sectionNumber;
+       int nodeCount;
+
+      public:
+        explicit ViaDescription(int sectionNumber, int nodeCount) : sectionNumber(sectionNumber), nodeCount(nodeCount) {};
+
+        std::string GetDebugString() const override;
+
+        int GetSectionNumber() const { return sectionNumber; };
+         
+        int GetNodeCount() const { return nodeCount; };
+      };
+
+      using ViaDescriptionRef = std::shared_ptr<ViaDescription>;
+      
+    /**
+     * \ingroup Routing
      */
     class OSMSCOUT_API Node
     {
     private:
-      DatabaseId                                     database; //!< database id of objects and pathObject
+      DatabaseId                                     database; //!< db id of objects and pathObject
       size_t                                         currentNodeIndex; //!< current node index of pathObject
       std::vector<ObjectFileRef>                     objects; //!< list of objects intersecting this node. Is empty when node belongs to pathObject only
       ObjectFileRef                                  pathObject; //!< object used for traveling from this node. Is invalid for last node
@@ -769,7 +795,7 @@ namespace osmscout {
       DescriptionRef GetDescription(const char* name) const;
 
       void SetDistance(Distance distance);
-      void SetTime(const Timestamp::duration &time);
+      void SetTime(const Timestamp::duration &duration);
       void SetLocation(const GeoCoord &coord);
 
       void AddDescription(const char* name,
@@ -786,7 +812,7 @@ namespace osmscout {
     RouteDescription() = default;
     virtual ~RouteDescription() = default;
 
-    void SetDatabaseMapping(std::map<DatabaseId, std::string> databaseMapping);
+    void SetDatabaseMapping(const std::map<DatabaseId, std::string>& databaseMapping);
 
     std::map<DatabaseId, std::string> GetDatabaseMapping() const;
 

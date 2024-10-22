@@ -1,7 +1,7 @@
 #ifndef HEADER_3F995FB366198164
 #define HEADER_3F995FB366198164
 
-#include <osmscout/Database.h>
+#include <osmscout/db/Database.h>
 #include <osmscout/routing/SimpleRoutingService.h>
 #include <osmscout/routing/MultiDBRoutingService.h>
 

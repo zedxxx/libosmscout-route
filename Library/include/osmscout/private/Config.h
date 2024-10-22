@@ -206,6 +206,11 @@
 /* #undef HAVE_STD_EXECUTION */
 #endif
 
+/* Define to 1 or 0, depending whether the tbb::task_scheduler_init exists. */
+#ifndef TBB_HAS_SCHEDULER_INIT
+/* #undef TBB_HAS_SCHEDULER_INIT */
+#endif
+
 /* int16_t is available */
 #ifndef OSMSCOUT_HAVE_INT16_T
 #define OSMSCOUT_HAVE_INT16_T 1
@@ -338,15 +343,7 @@
 
 /* zlib detected */
 #ifndef HAVE_LIB_ZLIB
-/* #undef HAVE_LIB_ZLIB */
-#endif
-
-/* iconv detected */
-#ifndef HAVE_ICONV
-/* #undef HAVE_ICONV */
-#endif
-#ifndef ICONV_CONST
-#define ICONV_CONST 
+#define HAVE_LIB_ZLIB 1
 #endif
 
 /* libagg detected */
@@ -377,6 +374,11 @@
 /* pango detected */
 #ifndef OSMSCOUT_MAP_SVG_HAVE_LIB_PANGO
 /* #undef OSMSCOUT_MAP_SVG_HAVE_LIB_PANGO */
+#endif
+
+#ifndef OSMSCOUT_PTHREAD_NAME
+/* Threads are pthreads and non-posix setname is available */
+#define OSMSCOUT_PTHREAD_NAME
 #endif
 
 #endif // OSMSCOUT_PRIVATE_CONFIG_H

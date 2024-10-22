@@ -1,9 +1,9 @@
 
 #include <osmscout/GeoCoord.h>
-#include <osmscout/Database.h>
+#include <osmscout/db/Database.h>
 #include <osmscout/routing/RoutingService.h>
 #include <osmscout/routing/SimpleRoutingService.h>
-#include <osmscout/util/Logger.h>
+#include <osmscout/log/Logger.h>
 
 #include "Router.h"
 #include "RouterContext.h"
@@ -103,6 +103,7 @@ router_result RouterSingleCalc(RouterContext* ctx, route_profile profile,
     osmscout::RoutingResult result = router->CalculateRoute(routingProfile,
                                                             start,
                                                             target,
+                                                            std::nullopt,
                                                             parameter);
 
     if (!result.Success()) {

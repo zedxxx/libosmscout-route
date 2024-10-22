@@ -33,7 +33,7 @@ namespace osmscout{
    * \ingroup Routing
    *
    * Helper structure to implement a reference to a routing node in a given
-   * database (identified by a unique index).
+   * db (identified by a unique index).
    */
   struct DBId
   {
@@ -56,22 +56,22 @@ namespace osmscout{
 
     ~DBId() = default;
 
-    inline bool IsValid() const
+    bool IsValid() const
     {
       return id!=0;
     }
 
-    inline bool operator==(const DBId& other) const
+    bool operator==(const DBId& other) const
     {
       return database==other.database && id==other.id;
     }
 
-    inline bool operator!=(const DBId& other) const
+    bool operator!=(const DBId& other) const
     {
       return database!=other.database || id!=other.id;
     }
 
-    inline bool operator<(const DBId& other) const
+    bool operator<(const DBId& other) const
     {
       return std::tie(database, id) < std::tie(other.database, other.id);
     }
@@ -87,7 +87,7 @@ namespace osmscout{
    * \ingroup Routing
    *
    * Helper structure to implement a reference to a routing node in a given
-   * database (identified by a unique index).
+   * db (identified by a unique index).
    */
   struct DBFileOffset
   {
@@ -104,22 +104,22 @@ namespace osmscout{
     {
     }
 
-    inline bool IsValid() const
+    bool IsValid() const
     {
       return offset!=0;
     }
 
-    inline bool operator==(const DBFileOffset& other) const
+    bool operator==(const DBFileOffset& other) const
     {
       return database==other.database && offset==other.offset;
     }
 
-    inline bool operator!=(const DBFileOffset& other) const
+    bool operator!=(const DBFileOffset& other) const
     {
       return database!=other.database || offset!=other.offset;
     }
 
-    inline bool operator<(const DBFileOffset& other) const
+    bool operator<(const DBFileOffset& other) const
     {
       return std::tie(database, offset) < std::tie(other.database, other.offset);
     }

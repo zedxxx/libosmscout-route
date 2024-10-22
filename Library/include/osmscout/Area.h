@@ -21,14 +21,15 @@
 */
 
 #include <memory>
+#include <optional>
 
 #include <osmscout/GeoCoord.h>
 #include <osmscout/Point.h>
 
 #include <osmscout/TypeConfig.h>
 
-#include <osmscout/util/FileScanner.h>
-#include <osmscout/util/FileWriter.h>
+#include <osmscout/io/FileScanner.h>
+#include <osmscout/io/FileWriter.h>
 #include <osmscout/util/GeoBox.h>
 #include <osmscout/util/Progress.h>
 #include <osmscout/util/Geometry.h>
@@ -106,6 +107,8 @@ namespace osmscout {
       std::vector<Point>          nodes;        //!< The array of coordinates
       std::vector<SegmentGeoBox>  segments;     //!< Precomputed (cache) segment bounding boxes for optimisation
       GeoBox                      bbox;         //!< Precomputed (cache) bounding box
+      std::optional<GeoCoord>     center;       //!< "visual" polygon center (pole of inaccessibility).
+                                                //!< It is computed just for rings when center is far from bounding box center
 
     public:
       Ring() = default;
@@ -194,7 +197,6 @@ namespace osmscout {
 
       bool GetCenter(GeoCoord& center) const;
 
-      void GetBoundingBox(GeoBox& boundingBox) const;
       GeoBox GetBoundingBox() const;
 
       void SetType(const TypeInfoRef& type)
@@ -321,7 +323,7 @@ namespace osmscout {
 
     /**
      * Write the area with all data required in the
-     * standard database.
+     * standard db.
      */
     void Write(const TypeConfig& typeConfig,
                FileWriter& writer) const;

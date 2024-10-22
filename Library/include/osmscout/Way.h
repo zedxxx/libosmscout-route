@@ -27,11 +27,12 @@
 #include <osmscout/Tag.h>
 #include <osmscout/TypeConfig.h>
 
-#include <osmscout/util/FileScanner.h>
-#include <osmscout/util/FileWriter.h>
 #include <osmscout/util/GeoBox.h>
 #include <osmscout/util/Geometry.h>
 #include <osmscout/util/Progress.h>
+
+#include <osmscout/io/FileScanner.h>
+#include <osmscout/io/FileWriter.h>
 
 #include <osmscout/system/Compiler.h>
 
@@ -110,6 +111,10 @@ namespace osmscout {
       return featureValueBuffer;
     }
 
+    bool IsValid() const {
+      return nodes.size()>=2;
+    }
+
     bool IsCircular() const
     {
       return nodes[0].GetId()!=0 &&
@@ -161,12 +166,8 @@ namespace osmscout {
       if (bbox.IsValid() || nodes.empty()) {
         return bbox;
       }
-      GeoBox boundingBox;
 
-      osmscout::GetBoundingBox(nodes,
-                               boundingBox);
-
-      return boundingBox;
+      return osmscout::GetBoundingBox(nodes);
     }
 
     /**

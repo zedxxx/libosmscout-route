@@ -23,7 +23,7 @@
 #include <memory>
 #include <tuple>
 
-#include <osmscout/CoreImportExport.h>
+#include <osmscout/lib/CoreImportExport.h>
 
 #include <osmscout/Pixel.h>
 
@@ -264,6 +264,13 @@ namespace osmscout {
     TileId GetMax() const
     {
       return maxTile;
+    }
+
+
+    TileId GetCenter() const
+    {
+      return {(minTile.GetX()+maxTile.GetX())/2,
+              (minTile.GetY()+maxTile.GetY())/2};
     }
 
     uint32_t GetMinX() const

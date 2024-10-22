@@ -22,4 +22,8 @@
 
 #include <cmath>
 
+namespace osmscout {
+  static const double gradtorad=2*M_PI/360.0;
+}
+
 #endif

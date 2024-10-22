@@ -1,9 +1,9 @@
 
 #include <osmscout/GeoCoord.h>
-#include <osmscout/Database.h>
+#include <osmscout/db/Database.h>
 #include <osmscout/routing/RoutingService.h>
 #include <osmscout/routing/MultiDBRoutingService.h>
-#include <osmscout/util/Logger.h>
+#include <osmscout/log/Logger.h>
 
 #include "Router.h"
 #include "RouterContext.h"
@@ -120,6 +120,7 @@ router_result RouterMultiCalc(RouterContext* ctx, route_profile profile,
     osmscout::RoutingParameter parameter;
     osmscout::RoutingResult result = router->CalculateRoute(start,
                                                             target,
+                                                            std::nullopt,
                                                             parameter);
 
     if (!result.Success()) {

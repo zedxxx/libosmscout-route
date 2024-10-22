@@ -1,7 +1,7 @@
 #ifndef ROUTINGPROFILEBUILDER_H_INCLUDED
 #define ROUTINGPROFILEBUILDER_H_INCLUDED
 
-#include <osmscout/Database.h>
+#include <osmscout/db/Database.h>
 #include <osmscout/routing/RoutingProfile.h>
 
 #include "Router.h"

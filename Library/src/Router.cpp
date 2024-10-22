@@ -1,5 +1,6 @@
 
-#include <osmscout/util/Logger.h>
+#include <osmscout/log/Logger.h>
+#include <osmscout/log/LoggerImpl.h>
 
 #include "Router.h"
 #include "RouterContext.h"
@@ -14,7 +15,7 @@ static bool debugPerformance = false;
 DLL_EXPORT void router_init()
 {
     #ifdef ROUTER_DEBUG
-    auto logger = new osmscout::ConsoleLogger();
+    auto logger = std::make_shared<ConsoleLogger>();
 
     debugPerformance = true;
     osmscout::log.Debug(true);
@@ -22,7 +23,7 @@ DLL_EXPORT void router_init()
     osmscout::log.Warn(true);
     osmscout::log.Error(true);
     #else
-    auto logger = new osmscout::StreamLogger(logStream, logStream);
+    auto logger = std::make_shared<osmscout::StreamLogger>(logStream, logStream);
 
     osmscout::log.Debug(false);
     osmscout::log.Info(false);
