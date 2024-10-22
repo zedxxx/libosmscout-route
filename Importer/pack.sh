@@ -23,7 +23,7 @@ done
 target=$root/stylesheets
 mkdir $target
 
-cp ./../$src/stylesheets/map.ost $target
+cp ./../$src/stylesheets/*.ost $target
 cp ./../$src/packaging/import/windows/README.txt $root/Readme.txt
 cp ./../$src/packaging/import/windows/import.cmd $root/Import.cmd
 
@@ -32,3 +32,4 @@ cp stylesheets/route.ost $target
 
 7z a "$root".zip "$root"/* 
 
+rm -rf $root
