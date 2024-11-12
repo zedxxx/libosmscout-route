@@ -6,4 +6,4 @@ cmake -B ${bin} -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
 
 cd ${bin}
 
-mingw32-make -j2
+mingw32-make -j4

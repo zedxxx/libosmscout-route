@@ -50,6 +50,17 @@ cmake . -G "MinGW Makefiles" \
 
 mingw32-make -j4
 
-cp -v ./libosmscout/libosmscout.a ./../Library/lib/libosmscout.a
+arch=32
+if [[ "$MSYSTEM" == "MINGW64" ]]; then
+    arch=64
+fi
+
+target_dir=./../Library/lib/win$arch
+
+if [ ! -d "${target_dir}/" ]; then
+    mkdir $target_dir
+fi
+
+cp -v ./libosmscout/libosmscout.a $target_dir/libosmscout.a
 
 cp -r -v ./libosmscout/include ./../Library/
