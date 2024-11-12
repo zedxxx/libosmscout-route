@@ -12,99 +12,156 @@
 static std::ostringstream logStream;
 static bool debugPerformance = false;
 
-DLL_EXPORT void router_init()
+static router_result catch_all()
 {
-    #ifdef ROUTER_DEBUG
-    auto logger = std::make_shared<ConsoleLogger>();
-
-    debugPerformance = true;
-    osmscout::log.Debug(true);
-    osmscout::log.Info(true);
-    osmscout::log.Warn(true);
-    osmscout::log.Error(true);
-    #else
-    auto logger = std::make_shared<osmscout::StreamLogger>(logStream, logStream);
-
-    osmscout::log.Debug(false);
-    osmscout::log.Info(false);
-    osmscout::log.Warn(true);
-    osmscout::log.Error(true);
-    #endif
-
-    osmscout::log.SetLogger(logger);
+    try
+    {
+        throw;
+    }
+    catch (const std::exception& ex) {
+        osmscout::log.Error() << ex.what();
+    }
+    catch (...) {
+        osmscout::log.Error() << "An unknown C++ exception occurred!";
+    }
+    return ROUTER_RESULT_ERROR;
 }
 
-DLL_EXPORT router_result router_new(void** ctx_ptr, const void* opt_ptr)
+extern "C" DLL_EXPORT
+void router_init()
 {
-    logStream.str("");
+    try
+    {
+        #ifdef ROUTER_DEBUG
+        auto logger = std::make_shared<osmscout::ConsoleLogger>();
 
-    if (!opt_ptr) {
-        return ROUTER_RESULT_ERROR;
+        debugPerformance = true;
+        osmscout::log.Debug(true);
+        osmscout::log.Info(true);
+        osmscout::log.Warn(true);
+        osmscout::log.Error(true);
+        #else
+        auto logger = std::make_shared<osmscout::StreamLogger>(logStream, logStream);
+
+        osmscout::log.Debug(false);
+        osmscout::log.Info(false);
+        osmscout::log.Warn(true);
+        osmscout::log.Error(true);
+        #endif
+
+        osmscout::log.SetLogger(logger);
     }
-
-    auto ctx = new RouterContext();
-    *ctx_ptr = ctx;
-
-    auto opt = static_cast<const RouterOptions*>(opt_ptr);
-    ctx->opt = opt;
-
-    ctx->isMulti = opt->databasePath.size() > 1;
-    ctx->routerParameter.SetDebugPerformance(debugPerformance);
-
-    return ctx->isMulti ? RouterMultiNew(ctx) : RouterSingleNew(ctx);
+    catch (...) {
+        catch_all();
+    }
 }
 
-DLL_EXPORT void router_del(void* ctx_ptr)
+extern "C" DLL_EXPORT
+router_result router_new(void** ctx_ptr, const void* opt_ptr)
 {
-    if (!ctx_ptr) {
-        return;
-    }
+    try
+    {
+        logStream.str("");
 
-    auto ctx = static_cast<RouterContext*>(ctx_ptr);
-    delete ctx;
+        if (!opt_ptr) {
+            return ROUTER_RESULT_ERROR;
+        }
+
+        auto ctx = new RouterContext();
+        *ctx_ptr = ctx;
+
+        auto opt = static_cast<const RouterOptions*>(opt_ptr);
+        ctx->opt = opt;
+
+        ctx->isMulti = opt->databasePath.size() > 1;
+        ctx->routerParameter.SetDebugPerformance(debugPerformance);
+
+        return ctx->isMulti ? RouterMultiNew(ctx) : RouterSingleNew(ctx);
+    }
+    catch (...) {
+        return catch_all();
+    }
+}
+
+extern "C" DLL_EXPORT
+void router_del(void* ctx_ptr)
+{
+    try
+    {
+        logStream.str("");
+
+        if (!ctx_ptr) {
+            return;
+        }
+        auto ctx = static_cast<RouterContext*>(ctx_ptr);
+        delete ctx;
+    }
+    catch (...) {
+        catch_all();
+    }
 };
 
-DLL_EXPORT router_result
-router_calc(void* ctx_ptr, route_profile profile,
-            const point_t* p1, const point_t* p2,
-            uint32_t* out_count, const point_t** out_points)
+extern "C" DLL_EXPORT
+router_result router_calc(void* ctx_ptr, route_profile profile,
+                          const point_t* p1, const point_t* p2,
+                          uint32_t* out_count, const point_t** out_points)
 {
-    logStream.str("");
+    try
+    {
+        logStream.str("");
 
-    if (!ctx_ptr) {
-        return ROUTER_RESULT_ERROR;
+        if (!ctx_ptr) {
+            return ROUTER_RESULT_ERROR;
+        }
+
+        auto ctx = static_cast<RouterContext*>(ctx_ptr);
+
+        ctx->err.clear();
+
+        if (ctx->isMulti) {
+            return RouterMultiCalc(ctx, profile, p1, p2, out_count, out_points);
+        } else {
+            return RouterSingleCalc(ctx, profile, p1, p2, out_count, out_points);
+        }
     }
-
-    auto ctx = static_cast<RouterContext*>(ctx_ptr);
-
-    ctx->err.clear();
-
-    if (ctx->isMulti) {
-        return RouterMultiCalc(ctx, profile, p1, p2, out_count, out_points);
-    } else {
-        return RouterSingleCalc(ctx, profile, p1, p2, out_count, out_points);
+    catch (...) {
+        return catch_all();
     }
 }
 
-DLL_EXPORT void router_clear(void* ctx_ptr)
+extern "C" DLL_EXPORT
+void router_clear(void* ctx_ptr)
 {
-    if (!ctx_ptr) {
-        return;
-    }
+    try
+    {
+        logStream.str("");
 
-    auto ctx = static_cast<RouterContext*>(ctx_ptr);
-    ctx->Clear();
+        if (!ctx_ptr) {
+            return;
+        }
+        auto ctx = static_cast<RouterContext*>(ctx_ptr);
+        ctx->Clear();
+    }
+    catch (...) {
+        catch_all();
+    }
 };
 
-DLL_EXPORT const char* router_get_error_message(void* ctx_ptr)
+extern "C" DLL_EXPORT
+const char* router_get_error_message(void* ctx_ptr)
 {
-    if (!ctx_ptr) {
+    try
+    {
+        if (!ctx_ptr) {
+            return nullptr;
+        }
+        auto ctx = static_cast<RouterContext*>(ctx_ptr);
+        ctx->err = logStream.str();
+        return ctx->err.c_str();
+    }
+    catch (...) {
         return nullptr;
     }
-
-    auto ctx = static_cast<RouterContext*>(ctx_ptr);
-    ctx->err = logStream.str();
-    return ctx->err.c_str();
 };
 
 static const router_version_t router_version = {
@@ -112,7 +169,8 @@ static const router_version_t router_version = {
     LIBOSMSCOUT_COMMIT_HASH
 };
 
-DLL_EXPORT const router_version_t* router_get_version()
+extern "C" DLL_EXPORT
+const router_version_t* router_get_version()
 {
     return &router_version;
 };
