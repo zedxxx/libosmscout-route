@@ -1,6 +1,6 @@
 ### **Как создать БД?**
 
-1. Скачать и распаковать архив: [libosmscout-importer-v2.0.1-win64.zip](https://github.com/zedxxx/libosmscout-route/releases/download/v2.0.1/libosmscout-importer-v2.0.1-win64.zip)
+1. Скачать и распаковать архив: [libosmscout_route-v2.0.2-win64.zip](https://github.com/zedxxx/libosmscout-route/releases/download/v2.0.2/libosmscout_route-v2.0.2-win64.zip)
 2. Скачать `.osm.pbf` файл интересующего региона с [geofabrik.de](https://download.geofabrik.de/)
 3. Перейти в папку импортёра (из п.1) и из командной строки запустить импорт, указав полный путь к загруженному файлу:
 
@@ -40,5 +40,6 @@
 С файлом для [России](https://download.geofabrik.de/russia.html) в 2.9 ГБ, объединяющем все федеральные округа, указанный выше компьютер не справился - на последнем этапе не хватило ОЗУ.
  
 ---
+
 
 *Источник: https://github.com/zedxxx/libosmscout-route*
