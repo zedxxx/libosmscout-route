@@ -1,9 +1,9 @@
 #!/usr/bin/bash -ex
 
-bin="bin"
+build_dir="build"
 
-cmake -B ${bin} -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
+cmake -S . -B ${build_dir} -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release --fresh
 
-cd ${bin}
+cmake --build ${build_dir} -j
 
-mingw32-make -j4
+rm -rf ${build_dir}

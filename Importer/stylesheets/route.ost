@@ -73,6 +73,10 @@ OST
       Ignore objects of this type
 */
 
+// ----------------------------------------------------------------------------
+// BEGIN max_speeds.ost
+// ----------------------------------------------------------------------------
+
 /*
   List of max speeds aliases. Normally value for the tag "maxspeed" should always
   have a numeric value and the source of the speed limit should be placed into
@@ -111,6 +115,10 @@ MAX SPEEDS
   SPEED "RU:urban"         =  60 km/h
   SPEED "RU:rural"         =  90 km/h
   SPEED "RU:motorway"      = 110 km/h
+
+// ----------------------------------------------------------------------------
+// END max_speeds.ost
+// ----------------------------------------------------------------------------
 
 /*
   Allows you to map surface descriptions to a grade value ([1-5]).
@@ -208,6 +216,11 @@ FEATURES
     de: "Breite"
 
 TYPES
+
+// ----------------------------------------------------------------------------
+// BEGIN contour_lines.ost
+// ----------------------------------------------------------------------------
+
   //
   // contour lines
   //
@@ -227,6 +240,14 @@ TYPES
       {Ele}
       IGNORESEALAND PIN_WAY
 
+// ----------------------------------------------------------------------------
+// END contour_lines.ost
+// ----------------------------------------------------------------------------
+
+// ----------------------------------------------------------------------------
+// BEGIN motorways.ost
+// ----------------------------------------------------------------------------
+  
   //
   // Motorways and motorways-like: Areas (see https://wiki.openstreetmap.org/wiki/Key:area:highway?uselang=de)
   //
@@ -361,6 +382,14 @@ TYPES
       DESC
         en: "service"
         de: "Erschließungsweg"
+        
+  TYPE highway_milestone IGNORE // not-a-route
+    = NODE ("highway"=="milestone")
+      {HighwayMilestone}
+      
+// ----------------------------------------------------------------------------
+// END motorways.ost
+// ----------------------------------------------------------------------------
 
   // Ways with main designation different to car
 
@@ -963,7 +992,7 @@ TYPES
 
   TYPE natural_volcano IGNORE // not-a-route
     = NODE ("natural"=="volcano")
-      {Name, NameAlt}
+      {Name, NameAlt, Ele}
 
   TYPE natural_water IGNORE // not-a-route
     = NODE AREA ("natural"=="water")
@@ -1485,13 +1514,13 @@ TYPES
   TYPE shop_building IGNORE // not-a-route
     = AREA (EXISTS "shop" AND EXISTS "building" AND !("building" IN ["no","false","0"]))
       {Name, NameAlt, OpeningHours, Phone, Website}
-      ADDRESS
+      ADDRESS POI
       GROUP shop, building, routingPOI
 
   TYPE shop IGNORE // not-a-route
     = NODE AREA (EXISTS "shop")
       {Name, NameAlt, OpeningHours, Phone, Website}
-      ADDRESS
+      ADDRESS POI
       GROUP shop, routingPOI
 
   //
@@ -2134,7 +2163,11 @@ TYPES
     = NODE AREA ("place"=="county")
       {Name, NameAlt, IsIn}
 
-  // Do not delete the following types, they are required by the GenCityStreet import step
+  TYPE place_capitalcity IGNORE // not-a-route
+    = NODE AREA ("place"=="city" AND EXISTS "capital" AND "capital"=="yes")
+      {Name, NameAlt, IsIn}
+      ADMIN_REGION
+
   TYPE place_millioncity IGNORE // not-a-route
     = NODE AREA ("place"=="city" AND EXISTS "population" AND "population">1000000)
       {Name, NameAlt, IsIn}

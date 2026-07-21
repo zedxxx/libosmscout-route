@@ -19,3 +19,5 @@ Wrapper/**/*.lps
 **/.idea/**
 **/build/**
 .libosmscout
+/Library/libosmscout_route.depend
+/Library/libosmscout_route.layout

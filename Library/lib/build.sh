@@ -48,7 +48,7 @@ cmake . -G "MinGW Makefiles" \
     -DOSMSCOUT_BUILD_WITH_OPENMP=OFF \
     -DOSMSCOUT_BUILD_IMPORT_TOOL_FOR_DISTRIBUTION=OFF
 
-mingw32-make -j4
+mingw32-make -j
 
 arch=32
 if [[ "$MSYSTEM" == "MINGW64" ]]; then
@@ -64,3 +64,5 @@ fi
 cp -v ./libosmscout/libosmscout.a $target_dir/libosmscout.a
 
 cp -r -v ./libosmscout/include ./../Library/
+
+cd ./../Library/include && find . -type f -name "*.h" -exec dos2unix {} +

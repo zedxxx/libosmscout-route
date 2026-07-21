@@ -185,11 +185,6 @@
 #define HAVE_UNISTD_H 1
 #endif
 
-/* Define to 1 if you have the <codecvt> header file. */
-#ifndef HAVE_CODECVT
-#define HAVE_CODECVT 1
-#endif
-
 /* Define to 1 if the system has the type `unsigned long long'. */
 #ifndef HAVE_UNSIGNED_LONG_LONG
 #define HAVE_UNSIGNED_LONG_LONG 1

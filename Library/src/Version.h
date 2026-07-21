@@ -4,7 +4,7 @@
 #include <osmscout/TypeConfig.h>
 
 const uint32_t LIBOSMSCOUT_FILE_FORMAT_VERSION = osmscout::FILE_FORMAT_VERSION;
-const char*    LIBOSMSCOUT_COMMIT_HASH = "2c840aaee";
+const char*    LIBOSMSCOUT_COMMIT_HASH = "73d42f9";
 
 #endif // header guard
 

@@ -7,15 +7,15 @@
 		<Option compiler="gcc" />
 		<Build>
 			<Target title="Debug">
-				<Option output="bin/Debug/libosmscout_route" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Debug/" />
+				<Option output="bin/win32-Debug/libosmscout_route" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/win32-Debug/" />
 				<Option type="3" />
 				<Option compiler="gcc-msys2-mingw32" />
 				<Option createDefFile="1" />
 				<Option createStaticLib="1" />
 				<Compiler>
 					<Add option="-Wall" />
-					<Add option="-std=gnu++17" />
+					<Add option="-std=gnu++20" />
 					<Add option="-g" />
 					<Add option="-DROUTER_DEBUG" />
 					<Add option="-DOSMSCOUT_STATIC" />
@@ -24,11 +24,12 @@
 					<Add option="-static-libstdc++" />
 					<Add option="-static-libgcc" />
 					<Add option="-static" />
+					<Add directory="lib/win32" />
 				</Linker>
 			</Target>
 			<Target title="Release">
-				<Option output="bin/Release/libosmscout_route" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Release/" />
+				<Option output="bin/win32/libosmscout_route" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/win32/" />
 				<Option type="3" />
 				<Option compiler="gcc-msys2-mingw32" />
 				<Option createDefFile="1" />
@@ -37,7 +38,7 @@
 					<Add option="-flto" />
 					<Add option="-O3" />
 					<Add option="-Wall" />
-					<Add option="-std=gnu++17" />
+					<Add option="-std=gnu++20" />
 					<Add option="-m32" />
 					<Add option="-DOSMSCOUT_STATIC" />
 				</Compiler>
@@ -52,8 +53,8 @@
 				</Linker>
 			</Target>
 			<Target title="Release-x64">
-				<Option output="bin/Release/libosmscout_route" prefix_auto="1" extension_auto="1" />
-				<Option object_output="obj/Release/" />
+				<Option output="bin/win64/libosmscout_route" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/win64/" />
 				<Option type="3" />
 				<Option compiler="gcc-msys2-mingw64" />
 				<Option createDefFile="1" />
@@ -62,7 +63,7 @@
 					<Add option="-flto" />
 					<Add option="-O3" />
 					<Add option="-Wall" />
-					<Add option="-std=gnu++17" />
+					<Add option="-std=gnu++20" />
 					<Add option="-m64" />
 					<Add option="-DOSMSCOUT_STATIC" />
 				</Compiler>
@@ -78,7 +79,7 @@
 			</Target>
 		</Build>
 		<Compiler>
-			<Add option="-std=c++17" />
+			<Add option="-std=gnu++20" />
 			<Add option="-U__STRICT_ANSI__" />
 			<Add option="-DBUILD_DLL" />
 			<Add option="-DOSMSCOUT_STATIC" />
@@ -86,7 +87,6 @@
 		</Compiler>
 		<Linker>
 			<Add library="osmscout" />
-			<Add directory="lib" />
 		</Linker>
 		<Unit filename="src/Router.cpp" />
 		<Unit filename="src/Router.h" />
